@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "updff"
+version = "0.1.0"
+description = "Universal Probabilistic Disaster Forecasting Framework"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Disaster Forecast Team"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+dependencies = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "pandas>=2.0.0",
+    "xarray>=2023.1.0",
+    "pymc>=5.0.0",
+    "arviz>=0.15.0",
+    "scikit-learn>=1.2.0",
+    "matplotlib>=3.7.0",
+    "plotly>=5.14.0",
+    "pydantic>=2.0.0",
+    "networkx>=3.0",
+    "numba>=0.57.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.0.270",
+]
+docs = [
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "myst-parser>=1.0.0",
+]
+gpu = [
+    "torch>=2.0.0",
+    "numpyro>=0.12.0",
+    "jax>=0.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/disaster-forecast/updff"
+Documentation = "https://updff.readthedocs.io"
+Repository = "https://github.com/disaster-forecast/updff"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=updff --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "W", "I", "N", "D", "UP", "B", "C4"]
+ignore = ["D100", "D104"]

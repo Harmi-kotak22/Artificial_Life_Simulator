@@ -1,0 +1,1055 @@
+{
+  "source": "Multiple sources - GHSI, OWID, World Bank",
+  "last_updated": "2026-02-20",
+  "countries": {
+    "United States": {
+      "overall": 75.9,
+      "prevention": 83.1,
+      "detection": 98.2,
+      "rapid_response": 79.7,
+      "health_system": 73.8,
+      "compliance_risk": 85.3,
+      "vaccination_rate": 69.47,
+      "health_expenditure_per_capita": 11648.49511719
+    },
+    "United Kingdom": {
+      "overall": 77.9,
+      "prevention": 68.3,
+      "detection": 87.3,
+      "rapid_response": 91.9,
+      "health_system": 80.3,
+      "compliance_risk": 83.5,
+      "vaccination_rate": 75.19,
+      "health_expenditure_per_capita": 4865.97802734
+    },
+    "Germany": {
+      "overall": 70.0,
+      "prevention": 58.7,
+      "detection": 84.6,
+      "rapid_response": 72.0,
+      "health_system": 76.2,
+      "compliance_risk": 90.5,
+      "vaccination_rate": 76.24,
+      "health_expenditure_per_capita": 5906.80615234
+    },
+    "France": {
+      "overall": 70.2,
+      "prevention": 60.8,
+      "detection": 84.0,
+      "rapid_response": 72.1,
+      "health_system": 76.1,
+      "compliance_risk": 85.4,
+      "vaccination_rate": 78.44,
+      "health_expenditure_per_capita": 4760.08251953
+    },
+    "Canada": {
+      "overall": 69.8,
+      "prevention": 56.8,
+      "detection": 90.4,
+      "rapid_response": 68.5,
+      "health_system": 67.7,
+      "compliance_risk": 89.7,
+      "vaccination_rate": 82.59,
+      "health_expenditure_per_capita": 5646.19433594
+    },
+    "Australia": {
+      "overall": 71.1,
+      "prevention": 57.5,
+      "detection": 89.5,
+      "rapid_response": 75.4,
+      "health_system": 63.6,
+      "compliance_risk": 94.6,
+      "vaccination_rate": 82.7,
+      "health_expenditure_per_capita": 5968.00341797
+    },
+    "Japan": {
+      "overall": 60.5,
+      "prevention": 46.4,
+      "detection": 73.3,
+      "rapid_response": 56.8,
+      "health_system": 72.4,
+      "compliance_risk": 79.5,
+      "vaccination_rate": 83.4,
+      "health_expenditure_per_capita": 4581.60986328
+    },
+    "South Korea": {
+      "overall": 65.4,
+      "prevention": 56.5,
+      "detection": 80.8,
+      "rapid_response": 72.1,
+      "health_system": 58.7,
+      "compliance_risk": 69.4,
+      "vaccination_rate": 85.64
+    },
+    "India": {
+      "overall": 42.8,
+      "prevention": 34.8,
+      "detection": 43.5,
+      "rapid_response": 45.0,
+      "health_system": 42.7,
+      "compliance_risk": 55.3,
+      "vaccination_rate": 67.18,
+      "health_expenditure_per_capita": 63.83099747
+    },
+    "Brazil": {
+      "overall": 59.7,
+      "prevention": 54.6,
+      "detection": 66.7,
+      "rapid_response": 53.4,
+      "health_system": 56.8,
+      "compliance_risk": 72.5,
+      "vaccination_rate": 81.82,
+      "health_expenditure_per_capita": 680.76843262
+    },
+    "Mexico": {
+      "overall": 57.6,
+      "prevention": 49.7,
+      "detection": 61.6,
+      "rapid_response": 55.4,
+      "health_system": 55.3,
+      "compliance_risk": 71.9,
+      "vaccination_rate": 64.19,
+      "health_expenditure_per_capita": 535.11669922
+    },
+    "Russia": {
+      "overall": 44.3,
+      "prevention": 41.8,
+      "detection": 53.8,
+      "rapid_response": 47.7,
+      "health_system": 40.3,
+      "compliance_risk": 43.5,
+      "vaccination_rate": 55.08
+    },
+    "China": {
+      "overall": 47.5,
+      "prevention": 45.3,
+      "detection": 64.5,
+      "rapid_response": 48.5,
+      "health_system": 45.8,
+      "compliance_risk": 38.5,
+      "vaccination_rate": 89.54,
+      "health_expenditure_per_capita": 582.95092773
+    },
+    "South Africa": {
+      "overall": 54.8,
+      "prevention": 46.3,
+      "detection": 64.0,
+      "rapid_response": 54.0,
+      "health_system": 51.0,
+      "compliance_risk": 68.8,
+      "vaccination_rate": 35.13,
+      "health_expenditure_per_capita": 503.46759033
+    },
+    "Nigeria": {
+      "overall": 37.8,
+      "prevention": 30.8,
+      "detection": 41.5,
+      "rapid_response": 38.4,
+      "health_system": 26.2,
+      "compliance_risk": 59.3,
+      "vaccination_rate": 37.2,
+      "health_expenditure_per_capita": 67.91384888
+    },
+    "Indonesia": {
+      "overall": 44.5,
+      "prevention": 36.4,
+      "detection": 48.3,
+      "rapid_response": 50.2,
+      "health_system": 40.5,
+      "compliance_risk": 52.8,
+      "vaccination_rate": 63.51,
+      "health_expenditure_per_capita": 131.8225708
+    },
+    "Pakistan": {
+      "overall": 32.9,
+      "prevention": 26.5,
+      "detection": 34.8,
+      "rapid_response": 34.2,
+      "health_system": 30.5,
+      "compliance_risk": 44.2,
+      "vaccination_rate": 59.57,
+      "health_expenditure_per_capita": 36.9091301
+    },
+    "Bangladesh": {
+      "overall": 35.5,
+      "prevention": 29.7,
+      "detection": 35.6,
+      "rapid_response": 39.5,
+      "health_system": 25.3,
+      "compliance_risk": 54.3,
+      "vaccination_rate": 83.07,
+      "health_expenditure_per_capita": 49.0274353
+    },
+    "Italy": {
+      "overall": 64.0,
+      "prevention": 55.3,
+      "detection": 73.4,
+      "rapid_response": 64.8,
+      "health_system": 66.4,
+      "compliance_risk": 78.5,
+      "vaccination_rate": 81.21,
+      "health_expenditure_per_capita": 3058.90014648
+    },
+    "Spain": {
+      "overall": 65.9,
+      "prevention": 56.7,
+      "detection": 75.3,
+      "rapid_response": 68.4,
+      "health_system": 69.2,
+      "compliance_risk": 73.4,
+      "vaccination_rate": 85.66,
+      "health_expenditure_per_capita": 2942.41943359
+    },
+    "Netherlands": {
+      "overall": 75.6,
+      "prevention": 70.5,
+      "detection": 82.4,
+      "rapid_response": 76.8,
+      "health_system": 80.4,
+      "compliance_risk": 74.3,
+      "vaccination_rate": 67.0,
+      "health_expenditure_per_capita": 5865.90527344
+    },
+    "Sweden": {
+      "overall": 72.1,
+      "prevention": 63.4,
+      "detection": 82.0,
+      "rapid_response": 76.2,
+      "health_system": 73.8,
+      "compliance_risk": 73.5,
+      "vaccination_rate": 71.98,
+      "health_expenditure_per_capita": 6030.53271484
+    },
+    "Thailand": {
+      "overall": 68.2,
+      "prevention": 61.4,
+      "detection": 78.4,
+      "rapid_response": 64.5,
+      "health_system": 70.8,
+      "compliance_risk": 62.8,
+      "vaccination_rate": 74.6,
+      "health_expenditure_per_capita": 304.3817749
+    },
+    "Vietnam": {
+      "overall": 49.1,
+      "prevention": 42.3,
+      "detection": 56.8,
+      "rapid_response": 48.5,
+      "health_system": 48.9,
+      "compliance_risk": 51.5,
+      "vaccination_rate": 87.55
+    },
+    "Egypt": {
+      "overall": 41.3,
+      "prevention": 35.2,
+      "detection": 45.6,
+      "rapid_response": 40.3,
+      "health_system": 39.4,
+      "compliance_risk": 52.8,
+      "vaccination_rate": 38.15
+    },
+    "Iran": {
+      "overall": 37.7,
+      "prevention": 32.5,
+      "detection": 43.2,
+      "rapid_response": 35.8,
+      "health_system": 42.5,
+      "compliance_risk": 38.5,
+      "vaccination_rate": 66.16
+    },
+    "Turkey": {
+      "overall": 52.4,
+      "prevention": 45.8,
+      "detection": 58.3,
+      "rapid_response": 51.2,
+      "health_system": 54.7,
+      "compliance_risk": 55.4,
+      "vaccination_rate": 62.31
+    },
+    "Argentina": {
+      "overall": 61.7,
+      "prevention": 51.3,
+      "detection": 71.8,
+      "rapid_response": 58.2,
+      "health_system": 61.5,
+      "compliance_risk": 72.4,
+      "vaccination_rate": 76.69,
+      "health_expenditure_per_capita": 910.9586792
+    },
+    "Colombia": {
+      "overall": 55.5,
+      "prevention": 44.8,
+      "detection": 64.5,
+      "rapid_response": 50.8,
+      "health_system": 56.2,
+      "compliance_risk": 65.3,
+      "vaccination_rate": 71.72,
+      "health_expenditure_per_capita": 464.41998291
+    },
+    "Philippines": {
+      "overall": 47.6,
+      "prevention": 38.5,
+      "detection": 52.4,
+      "rapid_response": 45.8,
+      "health_system": 47.3,
+      "compliance_risk": 58.4,
+      "vaccination_rate": 67.88,
+      "health_expenditure_per_capita": 166.61218262
+    },
+    "Afghanistan": {
+      "vaccination_rate": 44.67,
+      "health_expenditure_per_capita": 80.0892334
+    },
+    "Africa": {
+      "vaccination_rate": 32.41
+    },
+    "Albania": {
+      "vaccination_rate": 45.01,
+      "health_expenditure_per_capita": 396.17477417
+    },
+    "Algeria": {
+      "vaccination_rate": 14.43,
+      "health_expenditure_per_capita": 211.07240295
+    },
+    "Andorra": {
+      "vaccination_rate": 67.01,
+      "health_expenditure_per_capita": 3282.02587891
+    },
+    "Angola": {
+      "vaccination_rate": 27.0,
+      "health_expenditure_per_capita": 56.01641846
+    },
+    "Anguilla": {
+      "vaccination_rate": 65.38
+    },
+    "Antigua and Barbuda": {
+      "vaccination_rate": 66.53,
+      "health_expenditure_per_capita": 873.5246582
+    },
+    "Armenia": {
+      "vaccination_rate": 37.07,
+      "health_expenditure_per_capita": 535.2723999
+    },
+    "Aruba": {
+      "vaccination_rate": 79.25
+    },
+    "Asia": {
+      "vaccination_rate": 73.33
+    },
+    "Austria": {
+      "vaccination_rate": 74.76,
+      "health_expenditure_per_capita": 5569.84130859
+    },
+    "Azerbaijan": {
+      "vaccination_rate": 46.94,
+      "health_expenditure_per_capita": 245.21949768
+    },
+    "Bahamas": {
+      "vaccination_rate": 40.73
+    },
+    "Bahrain": {
+      "vaccination_rate": 83.33,
+      "health_expenditure_per_capita": 1101.14025879
+    },
+    "Barbados": {
+      "vaccination_rate": 55.05,
+      "health_expenditure_per_capita": 1234.30041504
+    },
+    "Belarus": {
+      "vaccination_rate": 67.28,
+      "health_expenditure_per_capita": 420.43655396
+    },
+    "Belgium": {
+      "vaccination_rate": 78.68,
+      "health_expenditure_per_capita": 5269.40625
+    },
+    "Belize": {
+      "vaccination_rate": 54.63,
+      "health_expenditure_per_capita": 279.10131836
+    },
+    "Benin": {
+      "vaccination_rate": 20.54,
+      "health_expenditure_per_capita": 36.62052536
+    },
+    "Bermuda": {
+      "vaccination_rate": 74.22
+    },
+    "Bhutan": {
+      "vaccination_rate": 86.61,
+      "health_expenditure_per_capita": 134.13723755
+    },
+    "Bolivia": {
+      "vaccination_rate": 50.4,
+      "health_expenditure_per_capita": 248.69514465
+    },
+    "Bonaire Sint Eustatius and Saba": {
+      "vaccination_rate": 61.87
+    },
+    "Bosnia and Herzegovina": {
+      "vaccination_rate": 26.17,
+      "health_expenditure_per_capita": 594.8225708
+    },
+    "Botswana": {
+      "vaccination_rate": 63.24,
+      "health_expenditure_per_capita": 386.28860474
+    },
+    "British Virgin Islands": {
+      "vaccination_rate": 58.28
+    },
+    "Brunei": {
+      "vaccination_rate": 99.49
+    },
+    "Bulgaria": {
+      "vaccination_rate": 30.64,
+      "health_expenditure_per_capita": 906.54833984
+    },
+    "Burkina Faso": {
+      "vaccination_rate": 23.08,
+      "health_expenditure_per_capita": 57.17589188
+    },
+    "Burundi": {
+      "vaccination_rate": 0.28,
+      "health_expenditure_per_capita": 26.21934319
+    },
+    "Cambodia": {
+      "vaccination_rate": 87.63,
+      "health_expenditure_per_capita": 106.79976654
+    },
+    "Cameroon": {
+      "vaccination_rate": 11.45,
+      "health_expenditure_per_capita": 66.17185211
+    },
+    "Cape Verde": {
+      "vaccination_rate": 52.05
+    },
+    "Cayman Islands": {
+      "vaccination_rate": 88.32
+    },
+    "Central African Republic": {
+      "vaccination_rate": 44.54,
+      "health_expenditure_per_capita": 42.63476563
+    },
+    "Chad": {
+      "vaccination_rate": 28.33,
+      "health_expenditure_per_capita": 37.73088074
+    },
+    "Chile": {
+      "vaccination_rate": 90.29,
+      "health_expenditure_per_capita": 1270.97814941
+    },
+    "Comoros": {
+      "vaccination_rate": 47.45,
+      "health_expenditure_per_capita": 89.67817688
+    },
+    "Congo": {
+      "vaccination_rate": 10.96
+    },
+    "Cook Islands": {
+      "vaccination_rate": 86.47
+    },
+    "Costa Rica": {
+      "vaccination_rate": 84.35,
+      "health_expenditure_per_capita": 969.89099121
+    },
+    "Cote d'Ivoire": {
+      "vaccination_rate": 43.2,
+      "health_expenditure_per_capita": 78.97766876
+    },
+    "Croatia": {
+      "vaccination_rate": 55.87,
+      "health_expenditure_per_capita": 1123.37963867
+    },
+    "Cuba": {
+      "vaccination_rate": 89.67,
+      "health_expenditure_per_capita": 1199.35327148
+    },
+    "Curacao": {
+      "vaccination_rate": 52.77
+    },
+    "Cyprus": {
+      "vaccination_rate": 72.11,
+      "health_expenditure_per_capita": 2443.37207031
+    },
+    "Czechia": {
+      "vaccination_rate": 65.71,
+      "health_expenditure_per_capita": 2106.28027344
+    },
+    "Democratic Republic of Congo": {
+      "vaccination_rate": 14.54
+    },
+    "Denmark": {
+      "vaccination_rate": 80.11,
+      "health_expenditure_per_capita": 6520.65771484
+    },
+    "Djibouti": {
+      "vaccination_rate": 35.79,
+      "health_expenditure_per_capita": 66.53086853
+    },
+    "Dominica": {
+      "vaccination_rate": 42.14,
+      "health_expenditure_per_capita": 452.65899658
+    },
+    "Dominican Republic": {
+      "vaccination_rate": 54.6,
+      "health_expenditure_per_capita": 354.25689697
+    },
+    "Ecuador": {
+      "vaccination_rate": 79.11,
+      "health_expenditure_per_capita": 470.20355225
+    },
+    "El Salvador": {
+      "vaccination_rate": 68.56,
+      "health_expenditure_per_capita": 357.78799438
+    },
+    "England": {
+      "vaccination_rate": 75.95
+    },
+    "Equatorial Guinea": {
+      "vaccination_rate": 12.78,
+      "health_expenditure_per_capita": 213.59317017
+    },
+    "Estonia": {
+      "vaccination_rate": 65.06,
+      "health_expenditure_per_capita": 1789.03417969
+    },
+    "Eswatini": {
+      "vaccination_rate": 35.56,
+      "health_expenditure_per_capita": 236.99609375
+    },
+    "Ethiopia": {
+      "vaccination_rate": 35.38,
+      "health_expenditure_per_capita": 28.28001595
+    },
+    "Europe": {
+      "vaccination_rate": 66.29
+    },
+    "European Union": {
+      "vaccination_rate": 72.86,
+      "health_expenditure_per_capita": 3749.13990498742
+    },
+    "Faeroe Islands": {
+      "vaccination_rate": 76.99
+    },
+    "Falkland Islands": {
+      "vaccination_rate": 46.7
+    },
+    "Fiji": {
+      "vaccination_rate": 68.96,
+      "health_expenditure_per_capita": 256.25967407
+    },
+    "Finland": {
+      "vaccination_rate": 78.46,
+      "health_expenditure_per_capita": 4736.21435547
+    },
+    "French Polynesia": {
+      "vaccination_rate": 60.99
+    },
+    "Gabon": {
+      "vaccination_rate": 10.78,
+      "health_expenditure_per_capita": 227.2480011
+    },
+    "Gambia": {
+      "vaccination_rate": 19.93
+    },
+    "Georgia": {
+      "vaccination_rate": 34.08,
+      "health_expenditure_per_capita": 389.42260742
+    },
+    "Ghana": {
+      "vaccination_rate": 32.2,
+      "health_expenditure_per_capita": 97.37677765
+    },
+    "Gibraltar": {
+      "vaccination_rate": 126.89
+    },
+    "Greece": {
+      "vaccination_rate": 73.64,
+      "health_expenditure_per_capita": 1674.78417969
+    },
+    "Greenland": {
+      "vaccination_rate": 68.17
+    },
+    "Grenada": {
+      "vaccination_rate": 31.11,
+      "health_expenditure_per_capita": 475.83853149
+    },
+    "Guatemala": {
+      "vaccination_rate": 39.94,
+      "health_expenditure_per_capita": 289.21640015
+    },
+    "Guernsey": {
+      "vaccination_rate": 83.23
+    },
+    "Guinea": {
+      "vaccination_rate": 42.24,
+      "health_expenditure_per_capita": 41.1027565
+    },
+    "Guinea-Bissau": {
+      "vaccination_rate": 26.01,
+      "health_expenditure_per_capita": 67.88795471
+    },
+    "Guyana": {
+      "vaccination_rate": 47.23,
+      "health_expenditure_per_capita": 364.20135498
+    },
+    "Haiti": {
+      "vaccination_rate": 3.16,
+      "health_expenditure_per_capita": 52.2158699
+    },
+    "High income": {
+      "vaccination_rate": 74.31,
+      "health_expenditure_per_capita": 5459.20363853139
+    },
+    "Honduras": {
+      "vaccination_rate": 56.11,
+      "health_expenditure_per_capita": 212.7419281
+    },
+    "Hong Kong": {
+      "vaccination_rate": 90.85
+    },
+    "Hungary": {
+      "vaccination_rate": 62.28,
+      "health_expenditure_per_capita": 1182.54138184
+    },
+    "Iceland": {
+      "vaccination_rate": 77.82,
+      "health_expenditure_per_capita": 5692.89111328
+    },
+    "Iraq": {
+      "vaccination_rate": 17.85,
+      "health_expenditure_per_capita": 248.04725647
+    },
+    "Ireland": {
+      "vaccination_rate": 80.94,
+      "health_expenditure_per_capita": 6073.10546875
+    },
+    "Isle of Man": {
+      "vaccination_rate": 79.38
+    },
+    "Israel": {
+      "vaccination_rate": 65.19,
+      "health_expenditure_per_capita": 3616.50219727
+    },
+    "Jamaica": {
+      "vaccination_rate": 26.88,
+      "health_expenditure_per_capita": 364.76513672
+    },
+    "Jersey": {
+      "vaccination_rate": 73.9
+    },
+    "Jordan": {
+      "vaccination_rate": 40.39,
+      "health_expenditure_per_capita": 303.4822998
+    },
+    "Kazakhstan": {
+      "vaccination_rate": 54.79,
+      "health_expenditure_per_capita": 329.57086182
+    },
+    "Kenya": {
+      "vaccination_rate": 20.53,
+      "health_expenditure_per_capita": 86.5921936
+    },
+    "Kiribati": {
+      "vaccination_rate": 62.08,
+      "health_expenditure_per_capita": 239.24353027
+    },
+    "Kosovo": {
+      "vaccination_rate": 46.3
+    },
+    "Kuwait": {
+      "vaccination_rate": 78.39,
+      "health_expenditure_per_capita": 1542.72143555
+    },
+    "Kyrgyzstan": {
+      "vaccination_rate": 21.2
+    },
+    "Laos": {
+      "vaccination_rate": 69.36
+    },
+    "Latvia": {
+      "vaccination_rate": 70.57,
+      "health_expenditure_per_capita": 1313.35412598
+    },
+    "Lebanon": {
+      "vaccination_rate": 43.98,
+      "health_expenditure_per_capita": 303.48632813
+    },
+    "Lesotho": {
+      "vaccination_rate": 40.68,
+      "health_expenditure_per_capita": 96.84536743
+    },
+    "Liberia": {
+      "vaccination_rate": 70.36,
+      "health_expenditure_per_capita": 76.11009979
+    },
+    "Libya": {
+      "vaccination_rate": 18.15,
+      "health_expenditure_per_capita": 472.62240601
+    },
+    "Lithuania": {
+      "vaccination_rate": 68.4,
+      "health_expenditure_per_capita": 1511.79626465
+    },
+    "Low income": {
+      "vaccination_rate": 27.79,
+      "health_expenditure_per_capita": 38.1835986575097
+    },
+    "Lower middle income": {
+      "vaccination_rate": 59.82,
+      "health_expenditure_per_capita": 78.5818977396645
+    },
+    "Luxembourg": {
+      "vaccination_rate": 71.45,
+      "health_expenditure_per_capita": 6785.86230469
+    },
+    "Macao": {
+      "vaccination_rate": 92.39
+    },
+    "Madagascar": {
+      "vaccination_rate": 8.88,
+      "health_expenditure_per_capita": 16.78295326
+    },
+    "Malawi": {
+      "vaccination_rate": 21.01,
+      "health_expenditure_per_capita": 42.37881851
+    },
+    "Malaysia": {
+      "vaccination_rate": 81.18,
+      "health_expenditure_per_capita": 406.52005005
+    },
+    "Maldives": {
+      "vaccination_rate": 73.53,
+      "health_expenditure_per_capita": 845.82440186
+    },
+    "Mali": {
+      "vaccination_rate": 16.08,
+      "health_expenditure_per_capita": 28.20211601
+    },
+    "Malta": {
+      "vaccination_rate": 88.43,
+      "health_expenditure_per_capita": 3140.77026367
+    },
+    "Mauritania": {
+      "vaccination_rate": 32.53,
+      "health_expenditure_per_capita": 53.89974594
+    },
+    "Mauritius": {
+      "vaccination_rate": 83.74,
+      "health_expenditure_per_capita": 541.95184326
+    },
+    "Moldova": {
+      "vaccination_rate": 32.97,
+      "health_expenditure_per_capita": 305.48913574
+    },
+    "Monaco": {
+      "vaccination_rate": 70.34,
+      "health_expenditure_per_capita": 7582.41552734
+    },
+    "Mongolia": {
+      "vaccination_rate": 64.02,
+      "health_expenditure_per_capita": 188.77464294
+    },
+    "Montenegro": {
+      "vaccination_rate": 45.43,
+      "health_expenditure_per_capita": 896.24884033
+    },
+    "Montserrat": {
+      "vaccination_rate": 44.23
+    },
+    "Morocco": {
+      "vaccination_rate": 62.8,
+      "health_expenditure_per_capita": 192.04043579
+    },
+    "Mozambique": {
+      "vaccination_rate": 64.7,
+      "health_expenditure_per_capita": 34.92252731
+    },
+    "Myanmar": {
+      "vaccination_rate": 66.33,
+      "health_expenditure_per_capita": 66.02284241
+    },
+    "Namibia": {
+      "vaccination_rate": 21.46,
+      "health_expenditure_per_capita": 370.81643677
+    },
+    "Nauru": {
+      "vaccination_rate": 89.4,
+      "health_expenditure_per_capita": 1270.52563477
+    },
+    "Nepal": {
+      "vaccination_rate": 80.11,
+      "health_expenditure_per_capita": 59.07941437
+    },
+    "New Caledonia": {
+      "vaccination_rate": 63.74
+    },
+    "New Zealand": {
+      "vaccination_rate": 82.77,
+      "health_expenditure_per_capita": 3887.71264648
+    },
+    "Nicaragua": {
+      "vaccination_rate": 88.17,
+      "health_expenditure_per_capita": 165.88038635
+    },
+    "Niger": {
+      "vaccination_rate": 20.92,
+      "health_expenditure_per_capita": 35.75537109
+    },
+    "Niue": {
+      "vaccination_rate": 83.76
+    },
+    "North America": {
+      "vaccination_rate": 65.71,
+      "health_expenditure_per_capita": 11030.9209909969
+    },
+    "North Macedonia": {
+      "vaccination_rate": 40.04,
+      "health_expenditure_per_capita": 510.81011963
+    },
+    "Northern Cyprus": {
+      "vaccination_rate": 81.78
+    },
+    "Northern Ireland": {
+      "vaccination_rate": 71.78
+    },
+    "Norway": {
+      "vaccination_rate": 74.61,
+      "health_expenditure_per_capita": 7824.57714844
+    },
+    "Oceania": {
+      "vaccination_rate": 62.33
+    },
+    "Oman": {
+      "vaccination_rate": 66.62,
+      "health_expenditure_per_capita": 859.24987793
+    },
+    "Palestine": {
+      "vaccination_rate": 33.85
+    },
+    "Panama": {
+      "vaccination_rate": 72.0,
+      "health_expenditure_per_capita": 1358.4498291
+    },
+    "Papua New Guinea": {
+      "vaccination_rate": 3.17,
+      "health_expenditure_per_capita": 55.92817688
+    },
+    "Paraguay": {
+      "vaccination_rate": 52.31,
+      "health_expenditure_per_capita": 411.81765747
+    },
+    "Peru": {
+      "vaccination_rate": 84.32,
+      "health_expenditure_per_capita": 399.13800049
+    },
+    "Pitcairn": {
+      "vaccination_rate": 100.0
+    },
+    "Poland": {
+      "vaccination_rate": 56.83,
+      "health_expenditure_per_capita": 1025.98486328
+    },
+    "Portugal": {
+      "vaccination_rate": 86.75,
+      "health_expenditure_per_capita": 2328.35571289
+    },
+    "Qatar": {
+      "vaccination_rate": 105.83,
+      "health_expenditure_per_capita": 1967.15197754
+    },
+    "Romania": {
+      "vaccination_rate": 41.28,
+      "health_expenditure_per_capita": 809.58880615
+    },
+    "Rwanda": {
+      "vaccination_rate": 75.49,
+      "health_expenditure_per_capita": 45.15266418
+    },
+    "Saint Helena": {
+      "vaccination_rate": 65.38
+    },
+    "Saint Kitts and Nevis": {
+      "vaccination_rate": 56.63
+    },
+    "Saint Lucia": {
+      "vaccination_rate": 30.56
+    },
+    "Saint Vincent and the Grenadines": {
+      "vaccination_rate": 30.43
+    },
+    "Samoa": {
+      "vaccination_rate": 80.02,
+      "health_expenditure_per_capita": 252.77748108
+    },
+    "San Marino": {
+      "vaccination_rate": 70.15,
+      "health_expenditure_per_capita": 3758.609375
+    },
+    "Sao Tome and Principe": {
+      "vaccination_rate": 49.25,
+      "health_expenditure_per_capita": 159.84396362
+    },
+    "Saudi Arabia": {
+      "vaccination_rate": 69.86,
+      "health_expenditure_per_capita": 1574.70068359
+    },
+    "Scotland": {
+      "vaccination_rate": 78.41
+    },
+    "Senegal": {
+      "vaccination_rate": 8.93,
+      "health_expenditure_per_capita": 75.16521454
+    },
+    "Serbia": {
+      "vaccination_rate": 47.71,
+      "health_expenditure_per_capita": 670.03564453
+    },
+    "Seychelles": {
+      "vaccination_rate": 78.0,
+      "health_expenditure_per_capita": 670.88684082
+    },
+    "Sierra Leone": {
+      "vaccination_rate": 57.66,
+      "health_expenditure_per_capita": 47.8861618
+    },
+    "Singapore": {
+      "vaccination_rate": 90.85,
+      "health_expenditure_per_capita": 3541.36450195
+    },
+    "Sint Maarten (Dutch part)": {
+      "vaccination_rate": 60.58
+    },
+    "Slovakia": {
+      "vaccination_rate": 45.68
+    },
+    "Slovenia": {
+      "vaccination_rate": 57.66,
+      "health_expenditure_per_capita": 2417.20874023
+    },
+    "Solomon Islands": {
+      "vaccination_rate": 35.12,
+      "health_expenditure_per_capita": 100.99560547
+    },
+    "Somalia": {
+      "vaccination_rate": 43.57
+    },
+    "South America": {
+      "vaccination_rate": 77.18
+    },
+    "South Sudan": {
+      "vaccination_rate": 39.16,
+      "health_expenditure_per_capita": 47.40253067
+    },
+    "Sri Lanka": {
+      "vaccination_rate": 67.57,
+      "health_expenditure_per_capita": 159.71383667
+    },
+    "Sudan": {
+      "vaccination_rate": 28.62,
+      "health_expenditure_per_capita": 22.91861534
+    },
+    "Suriname": {
+      "vaccination_rate": 38.49,
+      "health_expenditure_per_capita": 409.86743164
+    },
+    "Syria": {
+      "vaccination_rate": 10.66
+    },
+    "Taiwan": {
+      "vaccination_rate": 87.02
+    },
+    "Tajikistan": {
+      "vaccination_rate": 52.17,
+      "health_expenditure_per_capita": 74.17329407
+    },
+    "Tanzania": {
+      "vaccination_rate": 49.11,
+      "health_expenditure_per_capita": 31.7036171
+    },
+    "Timor": {
+      "vaccination_rate": 59.77
+    },
+    "Togo": {
+      "vaccination_rate": 17.56,
+      "health_expenditure_per_capita": 52.75213242
+    },
+    "Tokelau": {
+      "vaccination_rate": 116.38
+    },
+    "Tonga": {
+      "vaccination_rate": 72.39,
+      "health_expenditure_per_capita": 262.55459595
+    },
+    "Trinidad and Tobago": {
+      "vaccination_rate": 46.82,
+      "health_expenditure_per_capita": 1059.72583008
+    },
+    "Tunisia": {
+      "vaccination_rate": 51.81,
+      "health_expenditure_per_capita": 250.40145874
+    },
+    "Turkmenistan": {
+      "vaccination_rate": 71.05,
+      "health_expenditure_per_capita": 420.0083313
+    },
+    "Turks and Caicos Islands": {
+      "vaccination_rate": 67.16
+    },
+    "Tuvalu": {
+      "vaccination_rate": 83.86,
+      "health_expenditure_per_capita": 899.59460449
+    },
+    "Uganda": {
+      "vaccination_rate": 27.64,
+      "health_expenditure_per_capita": 44.73381805
+    },
+    "Ukraine": {
+      "vaccination_rate": 39.65,
+      "health_expenditure_per_capita": 265.07846069
+    },
+    "United Arab Emirates": {
+      "vaccination_rate": 103.72,
+      "health_expenditure_per_capita": 2154.41113281
+    },
+    "Upper middle income": {
+      "vaccination_rate": 78.81,
+      "health_expenditure_per_capita": 490.756350456569
+    },
+    "Uruguay": {
+      "vaccination_rate": 84.82,
+      "health_expenditure_per_capita": 1432.00463867
+    },
+    "Uzbekistan": {
+      "vaccination_rate": 53.29,
+      "health_expenditure_per_capita": 120.29019165
+    },
+    "Vanuatu": {
+      "vaccination_rate": 49.66,
+      "health_expenditure_per_capita": 125.41011047
+    },
+    "Venezuela": {
+      "vaccination_rate": 52.88
+    },
+    "Wales": {
+      "vaccination_rate": 78.14
+    },
+    "Wallis and Futuna": {
+      "vaccination_rate": 58.67
+    },
+    "World": {
+      "vaccination_rate": 64.93,
+      "health_expenditure_per_capita": 1159.57285311227
+    },
+    "Yemen": {
+      "vaccination_rate": 2.4
+    },
+    "Zambia": {
+      "vaccination_rate": 46.03,
+      "health_expenditure_per_capita": 60.01779938
+    },
+    "Zimbabwe": {
+      "vaccination_rate": 29.11,
+      "health_expenditure_per_capita": 51.14250565
+    }
+  }
+}
