@@ -2054,7 +2054,7 @@ elif page == "✅ Validate Forecast":
                 "Select country/region",
                 ["United States", "United Kingdom", "Germany", "France", "Italy", 
                  "Spain", "India", "Brazil", "Japan", "South Korea", "Australia",
-                 "Canada", "Mexico", "South Africa", "World"],
+                 "Canada", "Mexico", "South Africa"],
                 index=0,
                 key="validation_country"
             )
@@ -3639,6 +3639,15 @@ elif page == "📊 Understanding Results":
 # AGENT SIMULATION PAGE
 # ============================================================
 elif page == "🎮 Agent Simulation":
+    from simulation import (
+        run_agent_simulation,
+        build_target_curve_from_forecast,
+        build_target_curve_from_validation,
+        build_animation_figure,
+        build_seir_curves_figure,
+        compute_statistics,
+    )
+
     st.markdown('<h1 class="main-header">🎮 Agent-Based Disease Simulation</h1>', 
                 unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Watch disease spread through a virtual population - Artificial Life in action!</p>', 
@@ -3655,35 +3664,44 @@ elif page == "🎮 Agent Simulation":
     <li>🔴 <strong>Red</strong> = Infectious (can spread the disease)</li>
     <li>🔵 <strong>Blue</strong> = Recovered (immune)</li>
     </ul>
-    This is <strong>Artificial Life</strong> - emergent disease spread behavior arises from simple rules!
+    <strong>Two modes available:</strong>
+    <ul>
+    <li><strong>Forecast / Validation guided</strong> – agents follow the epidemic curve produced by the ensemble forecast (curve-guided ABM with proportional controller)</li>
+    <li><strong>Custom</strong> – pure emergent simulation driven only by R₀ and disease timers</li>
+    </ul>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Check available data sources
-    has_forecast = "forecast_results" in st.session_state
-    has_validation = "validation_data" in st.session_state and st.session_state.validation_data is not None
+    # ── data-source picker ──────────────────────────────────────────
+    has_forecast   = "forecast_results" in st.session_state
+    has_validation = ("validation_data" in st.session_state
+                      and st.session_state.validation_data is not None)
+    has_comparison = "comparison_forecast" in st.session_state
     
-    data_source_option = "custom"  # Default
+    data_source_option = "custom"
     
-    if has_forecast or has_validation:
+    if has_forecast or has_validation or has_comparison:
         st.success("✅ Data found! Choose a data source for the simulation:")
         
         options = ["🔧 Custom Parameters"]
         if has_forecast:
             options.append("🔮 Forecast Data")
+        if has_comparison:
+            options.append("📈 Validation Forecast (Hybrid Ensemble)")
         if has_validation:
-            val_source = st.session_state.get('validation_source', 'Real Data')
-            options.append(f"📊 Validation Data ({val_source})")
+            val_src = st.session_state.get('validation_source', 'Real Data')
+            options.append(f"📊 Validation Real Data ({val_src})")
         
-        # Set default index: prefer forecast, then validation, then custom
         if has_forecast:
-            default_idx = 1  # Forecast Data
+            default_idx = 1
+        elif has_comparison:
+            default_idx = 1
         elif has_validation:
-            default_idx = 1  # Validation Data (at index 1 since no forecast)
+            default_idx = 1
         else:
-            default_idx = 0  # Custom
+            default_idx = 0
         
         data_source_choice = st.radio(
             "Select data source:",
@@ -3692,16 +3710,18 @@ elif page == "🎮 Agent Simulation":
             horizontal=True
         )
         
-        if "Forecast" in data_source_choice:
+        if "Forecast Data" in data_source_choice:
             data_source_option = "forecast"
-        elif "Validation" in data_source_choice:
+        elif "Validation Forecast" in data_source_choice:
+            data_source_option = "comparison"
+        elif "Validation Real" in data_source_choice:
             data_source_option = "validation"
         else:
             data_source_option = "custom"
     else:
         st.warning("⚠️ No data found! Please go to '🔮 Forecast an Outbreak' or '✅ Validate Forecast' first, or use custom parameters below.")
-        data_source_option = "custom"
     
+    # ── simulation settings ─────────────────────────────────────────
     st.markdown("### ⚙️ Simulation Settings")
     
     col1, col2, col3 = st.columns(3)
@@ -3717,13 +3737,16 @@ elif page == "🎮 Agent Simulation":
         if data_source_option == "forecast":
             sim_days = st.session_state.forecast_results.get('days', 30)
             st.metric("Simulation Days", sim_days)
+        elif data_source_option == "comparison":
+            sim_days = st.session_state.comparison_forecast.get('days', 30)
+            st.metric("Simulation Days", sim_days)
         elif data_source_option == "validation":
             sim_days = len(st.session_state.validation_data)
             st.metric("Simulation Days", sim_days)
         else:
             sim_days = st.slider(
                 "Simulation Days",
-                min_value=10, max_value=90, value=30
+                min_value=10, max_value=365, value=30
             )
     
     with col3:
@@ -3733,489 +3756,455 @@ elif page == "🎮 Agent Simulation":
             help="Lower = faster animation"
         )
     
-    # Disease parameters based on data source
+    # ── disease parameters & target curve ───────────────────────────
+    target_curve = None    # None → pure emergent mode
+    
     if data_source_option == "forecast":
         forecast = st.session_state.forecast_results
-        sim_R0 = forecast.get('R0', 2.5)
+        sim_R0         = forecast.get('R0', forecast.get('spread_rate', 2.5))
+        sim_incubation = forecast.get('days_until_contagious', 3)
+        sim_infectious = forecast.get('days_contagious', 7)
+        target_curve   = build_target_curve_from_forecast(forecast, n_agents)
+        st.info(f"📊 **Curve-Guided Mode** — agents track the forecast epidemic curve\n\n"
+                f"R₀ = {sim_R0:.1f} · Duration = {sim_days} days · "
+                f"Disease = {forecast.get('disease', 'N/A')}")
+    
+    elif data_source_option == "comparison":
+        comp = st.session_state.comparison_forecast
+        sim_R0         = comp.get('R0', 2.5)
         sim_incubation = 3
         sim_infectious = 7
-        st.info(f"📊 Using forecast parameters: R₀ = {sim_R0:.1f}, Duration = {sim_days} days")
-        
+        target_curve   = build_target_curve_from_forecast(comp, n_agents)
+        st.info(f"📊 **Curve-Guided Mode** — agents track the validation ensemble curve\n\n"
+                f"R₀ = {sim_R0:.1f} · Duration = {sim_days} days · "
+                f"Model = {comp.get('model_type', 'Hybrid Ensemble')}")
+    
     elif data_source_option == "validation":
-        # Estimate R0 from validation data using MLE
         val_data = st.session_state.validation_data
-        
-        # Try to estimate R0 from growth rate
+        # estimate R₀ from early growth
         try:
-            calib_days = min(21, len(val_data) - 7)
-            calib_data = val_data['new_cases'].iloc[:calib_days].values
-            calib_smooth = pd.Series(calib_data).rolling(7, min_periods=1, center=True).mean().values
-            
-            valid_mask = calib_smooth > 10
-            valid_data = calib_smooth[valid_mask]
-            valid_days_arr = np.arange(calib_days)[valid_mask]
-            
-            if len(valid_data) >= 5:
-                log_cases = np.log(valid_data + 1)
-                coeffs = np.polyfit(valid_days_arr, log_cases, 1)
-                growth_rate = coeffs[0]
-                gamma_est = 1/7
-                estimated_R0 = max(0.8, min(8.0, 1 + growth_rate / gamma_est))
+            cd = max(3, min(21, len(val_data) - 7))
+            cd = min(cd, len(val_data))
+            cs = pd.Series(val_data['new_cases'].iloc[:cd].values).rolling(
+                7, min_periods=1, center=True).mean().values
+            mx = np.max(cs) if len(cs) > 0 else 0
+            thr = min(10, max(1, mx * 0.05))
+            vm = cs > thr
+            vd = cs[vm]
+            vi = np.arange(len(cs))[vm]
+            if len(vd) >= 5:
+                lc = np.log(vd + 1)
+                cf = np.polyfit(vi, lc, 1)
+                sim_R0 = float(np.clip(1 + cf[0] / (1/7), 0.8, 8.0))
             else:
-                estimated_R0 = 2.5
-        except:
-            estimated_R0 = 2.5
-        
-        sim_R0 = estimated_R0
+                sim_R0 = 2.5
+        except Exception:
+            sim_R0 = 2.5
         sim_incubation = 3
         sim_infectious = 7
-        
-        val_source = st.session_state.get('validation_source', 'Real Data')
-        first_day_cases = int(val_data['new_cases'].iloc[0])
-        peak_cases = int(val_data['new_cases'].max())
-        
-        st.info(f"""📊 Using validation data: **{val_source}**
-        - Estimated R₀: **{sim_R0:.2f}** (from growth rate)
-        - Duration: **{sim_days} days**
-        - First day: **{first_day_cases:,}** cases
-        - Peak: **{peak_cases:,}** cases""")
-        
+        target_curve   = build_target_curve_from_validation(val_data, n_agents)
+        val_src = st.session_state.get('validation_source', 'Real Data')
+        st.info(f"📊 **Curve-Guided Mode** — agents track the real-world case curve\n\n"
+                f"Estimated R₀ = {sim_R0:.2f} · Duration = {sim_days} days · "
+                f"Source = {val_src}")
+    
     else:
         st.markdown("### 🦠 Disease Parameters")
         col1, col2, col3 = st.columns(3)
-        
         with col1:
             sim_R0 = st.slider("R₀ (Spread Rate)", 1.0, 6.0, 2.5, 0.1)
         with col2:
             sim_incubation = st.slider("Incubation Period (days)", 1, 10, 3)
         with col3:
             sim_infectious = st.slider("Infectious Period (days)", 3, 21, 7)
+        st.info("🔧 **Custom Mode** — pure emergent ABM, no target curve")
     
+    # ── run simulation ──────────────────────────────────────────────
     if st.button("🚀 Generate Agent Simulation", type="primary"):
         with st.spinner("Creating agent-based simulation... This may take a moment."):
-            
-            # Create agent simulation data
-            np.random.seed(42)
-            
-            # Initialize agent positions (random in a 100x100 space)
-            positions_x = np.random.uniform(5, 95, n_agents)
-            positions_y = np.random.uniform(5, 95, n_agents)
-            
-            # Agent velocities (random movement)
-            velocities_x = np.random.uniform(-2, 2, n_agents)
-            velocities_y = np.random.uniform(-2, 2, n_agents)
-            
-            # SEIR states: 0=S, 1=E, 2=I, 3=R
-            states = np.zeros(n_agents, dtype=int)  # All start susceptible
-            
-            # Timers for state transitions
-            exposure_timer = np.zeros(n_agents)  # Days until E->I
-            infection_timer = np.zeros(n_agents)  # Days until I->R
-            
-            # Start with a few infected agents
-            initial_infected = max(1, int(n_agents * 0.02))
-            infected_indices = np.random.choice(n_agents, initial_infected, replace=False)
-            states[infected_indices] = 2  # Infectious
-            infection_timer[infected_indices] = sim_infectious
-            
-            # Calculate transmission probability from R0
-            # P(transmission per contact) ≈ R0 / (contacts_per_day * infectious_period)
-            contacts_per_day = 5  # Average contacts
-            transmission_prob = sim_R0 / (contacts_per_day * sim_infectious)
-            transmission_prob = min(0.5, transmission_prob)  # Cap at 50%
-            
-            # Infection radius
-            infection_radius = 8  # Distance within which transmission can occur
-            
-            # Store frames for animation
-            frames_data = []
-            
-            # Color mapping
-            state_colors = {0: '#2ecc71', 1: '#f39c12', 2: '#e74c3c', 3: '#3498db'}
-            state_names = {0: 'Susceptible', 1: 'Exposed', 2: 'Infectious', 3: 'Recovered'}
-            
-            # Run simulation
-            for day in range(sim_days):
-                # Store current frame
-                frame_colors = [state_colors[s] for s in states]
-                frame_names = [state_names[s] for s in states]
-                
-                frames_data.append({
-                    'x': positions_x.copy(),
-                    'y': positions_y.copy(),
-                    'colors': frame_colors,
-                    'names': frame_names,
-                    'day': day,
-                    'S': np.sum(states == 0),
-                    'E': np.sum(states == 1),
-                    'I': np.sum(states == 2),
-                    'R': np.sum(states == 3)
-                })
-                
-                # Update agent positions (with boundary bouncing)
-                positions_x += velocities_x
-                positions_y += velocities_y
-                
-                # Bounce off walls
-                out_of_bounds_x = (positions_x < 0) | (positions_x > 100)
-                out_of_bounds_y = (positions_y < 0) | (positions_y > 100)
-                velocities_x[out_of_bounds_x] *= -1
-                velocities_y[out_of_bounds_y] *= -1
-                positions_x = np.clip(positions_x, 0, 100)
-                positions_y = np.clip(positions_y, 0, 100)
-                
-                # Random direction changes (makes movement more natural)
-                direction_change = np.random.random(n_agents) < 0.1
-                velocities_x[direction_change] = np.random.uniform(-2, 2, np.sum(direction_change))
-                velocities_y[direction_change] = np.random.uniform(-2, 2, np.sum(direction_change))
-                
-                # Disease transmission
-                infectious_agents = np.where(states == 2)[0]
-                susceptible_agents = np.where(states == 0)[0]
-                
-                for inf_idx in infectious_agents:
-                    inf_x, inf_y = positions_x[inf_idx], positions_y[inf_idx]
-                    
-                    for sus_idx in susceptible_agents:
-                        sus_x, sus_y = positions_x[sus_idx], positions_y[sus_idx]
-                        
-                        # Calculate distance
-                        distance = np.sqrt((inf_x - sus_x)**2 + (inf_y - sus_y)**2)
-                        
-                        if distance < infection_radius:
-                            # Transmission probability based on distance
-                            proximity_factor = 1 - (distance / infection_radius)
-                            if np.random.random() < transmission_prob * proximity_factor:
-                                states[sus_idx] = 1  # Exposed
-                                exposure_timer[sus_idx] = sim_incubation
-                
-                # State transitions: E -> I
-                exposed_agents = np.where(states == 1)[0]
-                for exp_idx in exposed_agents:
-                    exposure_timer[exp_idx] -= 1
-                    if exposure_timer[exp_idx] <= 0:
-                        states[exp_idx] = 2  # Infectious
-                        infection_timer[exp_idx] = sim_infectious
-                
-                # State transitions: I -> R
-                for inf_idx in infectious_agents:
-                    infection_timer[inf_idx] -= 1
-                    if infection_timer[inf_idx] <= 0:
-                        states[inf_idx] = 3  # Recovered
-            
-            # Create animated figure
-            fig = go.Figure()
-            
-            # Add initial frame
-            initial_frame = frames_data[0]
-            fig.add_trace(go.Scatter(
-                x=initial_frame['x'],
-                y=initial_frame['y'],
-                mode='markers',
-                marker=dict(
-                    size=12,
-                    color=initial_frame['colors'],
-                    line=dict(width=1, color='white')
-                ),
-                text=initial_frame['names'],
-                hovertemplate='%{text}<extra></extra>'
-            ))
-            
-            # Create animation frames
-            animation_frames = []
-            for frame in frames_data:
-                animation_frames.append(go.Frame(
-                    data=[go.Scatter(
-                        x=frame['x'],
-                        y=frame['y'],
-                        mode='markers',
-                        marker=dict(
-                            size=12,
-                            color=frame['colors'],
-                            line=dict(width=1, color='white')
-                        ),
-                        text=frame['names'],
-                        hovertemplate='%{text}<extra></extra>'
-                    )],
-                    name=str(frame['day']),
-                    layout=go.Layout(
-                        title=f"Day {frame['day']+1} | 🟢S:{frame['S']} 🟡E:{frame['E']} 🔴I:{frame['I']} 🔵R:{frame['R']}"
-                    )
-                ))
-            
-            fig.frames = animation_frames
-            
-            # Add play/pause buttons and slider
-            fig.update_layout(
-                title=f"Day 1 | 🟢S:{initial_frame['S']} 🟡E:{initial_frame['E']} 🔴I:{initial_frame['I']} 🔵R:{initial_frame['R']}",
-                xaxis=dict(range=[0, 100], showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(range=[0, 100], showgrid=False, zeroline=False, showticklabels=False, scaleanchor='x'),
-                plot_bgcolor='#1a1a2e',
-                paper_bgcolor='#16213e',
-                font=dict(color='white'),
-                height=600,
-                updatemenus=[
-                    dict(
-                        type='buttons',
-                        showactive=False,
-                        y=1.15,
-                        x=0.5,
-                        xanchor='center',
-                        buttons=[
-                            dict(
-                                label='▶ Play',
-                                method='animate',
-                                args=[None, {
-                                    'frame': {'duration': animation_speed, 'redraw': True},
-                                    'fromcurrent': True,
-                                    'transition': {'duration': 50}
-                                }]
-                            ),
-                            dict(
-                                label='⏸ Pause',
-                                method='animate',
-                                args=[[None], {
-                                    'frame': {'duration': 0, 'redraw': False},
-                                    'mode': 'immediate',
-                                    'transition': {'duration': 0}
-                                }]
-                            )
-                        ]
-                    )
-                ],
-                sliders=[{
-                    'active': 0,
-                    'yanchor': 'top',
-                    'xanchor': 'left',
-                    'currentvalue': {
-                        'prefix': 'Day: ',
-                        'visible': True,
-                        'xanchor': 'center'
-                    },
-                    'transition': {'duration': 50},
-                    'pad': {'b': 10, 't': 50},
-                    'len': 0.9,
-                    'x': 0.05,
-                    'y': 0,
-                    'steps': [
-                        {'args': [[str(f['day'])], {'frame': {'duration': 50, 'redraw': True}, 'mode': 'immediate'}],
-                         'label': str(f['day']+1),
-                         'method': 'animate'}
-                        for f in frames_data
-                    ]
-                }]
+            frames_data = run_agent_simulation(
+                n_agents=n_agents,
+                sim_days=sim_days,
+                sim_R0=sim_R0,
+                sim_incubation=sim_incubation,
+                sim_infectious=sim_infectious,
+                target_curve=target_curve,
+                seed=42,
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # ── animated scatter ────────────────────────────────────
+            fig_anim = build_animation_figure(frames_data, animation_speed)
+            st.plotly_chart(fig_anim, use_container_width=True)
             
-            # Show SEIR curves from simulation
+            # ── SEIR curves ────────────────────────────────────────
             st.markdown("### 📈 Disease Spread Over Time (from simulation)")
-            
-            days = [f['day']+1 for f in frames_data]
-            S_counts = [f['S'] for f in frames_data]
-            E_counts = [f['E'] for f in frames_data]
-            I_counts = [f['I'] for f in frames_data]
-            R_counts = [f['R'] for f in frames_data]
-            
-            fig_curves = go.Figure()
-            fig_curves.add_trace(go.Scatter(x=days, y=S_counts, name='Susceptible', line=dict(color='#2ecc71', width=2)))
-            fig_curves.add_trace(go.Scatter(x=days, y=E_counts, name='Exposed', line=dict(color='#f39c12', width=2)))
-            fig_curves.add_trace(go.Scatter(x=days, y=I_counts, name='Infectious', line=dict(color='#e74c3c', width=2)))
-            fig_curves.add_trace(go.Scatter(x=days, y=R_counts, name='Recovered', line=dict(color='#3498db', width=2)))
-            
-            fig_curves.update_layout(
-                title='SEIR Compartment Counts from Agent Simulation',
-                xaxis_title='Day',
-                yaxis_title='Number of Agents',
-                template='plotly_dark',
-                height=400,
-                legend=dict(orientation='h', yanchor='bottom', y=1.02)
-            )
-            
+            fig_curves = build_seir_curves_figure(frames_data)
             st.plotly_chart(fig_curves, use_container_width=True)
             
-            # Key statistics
+            # ── statistics ──────────────────────────────────────────
             st.markdown("### 📊 Simulation Statistics")
+            stats = compute_statistics(frames_data, n_agents)
             
             col1, col2, col3, col4 = st.columns(4)
-            
-            peak_infected = max(I_counts)
-            peak_day = I_counts.index(peak_infected) + 1
-            total_infected = R_counts[-1] + I_counts[-1] + E_counts[-1]
-            attack_rate = (total_infected / n_agents) * 100
-            
             with col1:
-                st.metric("Peak Infections", peak_infected)
+                st.metric("Peak Infections", stats['peak_infected'])
             with col2:
-                st.metric("Peak Day", f"Day {peak_day}")
+                st.metric("Peak Day", f"Day {stats['peak_day']}")
             with col3:
-                st.metric("Total Infected", total_infected)
+                st.metric("Total Infected", stats['total_infected'])
             with col4:
-                st.metric("Attack Rate", f"{attack_rate:.1f}%")
+                st.metric("Attack Rate", f"{stats['attack_rate']:.1f}%")
             
             st.success("✅ Simulation complete! Use the Play button to watch the disease spread through the population.")
             
-            st.markdown("""
+            mode_label = "Curve-Guided" if target_curve is not None else "Custom (Emergent)"
+            st.markdown(f"""
             <div class="explain-box">
-            <strong>🔬 What You're Seeing:</strong><br><br>
-            This is an <strong>agent-based model</strong> - a core technique in Artificial Life simulation. 
+            <strong>🔬 What You're Seeing ({mode_label} Mode):</strong><br><br>
+            This is an <strong>agent-based model</strong> — a core technique in Artificial Life simulation.
             Each agent follows simple rules:
             <ul>
-            <li>Move randomly in space</li>
+            <li>Move randomly in space (Brownian-style motion with wall-bounce)</li>
             <li>If infectious and near a susceptible agent → may transmit disease</li>
-            <li>Progress through SEIR states based on timers</li>
+            <li>Progress through S → E → I → R states based on timers</li>
             </ul>
-            <strong>Emergent behavior:</strong> The epidemic curve emerges naturally from these simple rules - 
-            no one tells the simulation to create that characteristic peak-and-decline shape!
+            {"<strong>Curve guidance:</strong> A proportional controller adjusts the transmission probability each day so the aggregate new-infection count tracks the forecast/validation case curve. This means the micro-level agent interactions produce aggregate behavior that follows the macro-level forecast." if target_curve is not None else "<strong>Emergent behavior:</strong> The epidemic curve emerges naturally from these simple rules — no one tells the simulation to create that characteristic peak-and-decline shape!"}
             </div>
             """, unsafe_allow_html=True)
 
 
 # ============================================================
-# FAQ & HELP PAGE
+# FAQ & HELP PAGE - CHATBOT
 # ============================================================
 elif page == "❓ FAQ & Help":
-    st.markdown("# ❓ Frequently Asked Questions")
+    st.markdown("# 🤖 FAQ Chatbot")
+    st.markdown('<p class="sub-header">Ask me anything about disease forecasting!</p>', unsafe_allow_html=True)
     
-    st.markdown("---")
+    # ── Knowledge Base ──────────────────────────────────────────────
+    FAQ_KNOWLEDGE = {
+        "parameters": {
+            "keywords": ["parameter", "disease", "data", "source", "where", "come from", "cdc", "who", "r0", "spread rate", "values", "default"],
+            "question": "Where do the disease parameters come from?",
+            "answer": """All default disease parameters are based on **peer-reviewed scientific literature** and official reports from health organizations:
+
+- **CDC** (Centers for Disease Control and Prevention)
+- **WHO** (World Health Organization)  
+- **ECDC** (European Centre for Disease Prevention and Control)
+
+**Examples:**
+- COVID-19 parameters → CDC COVID Data Tracker & WHO situation reports
+- Influenza parameters → CDC seasonal flu surveillance data
+- Measles parameters → WHO measles fact sheets
+- Ebola parameters → WHO Ebola Response Team publications"""
+        },
+        "uncertainty": {
+            "keywords": ["range", "uncertainty", "confidence", "band", "interval", "why range", "not exact", "shaded", "wide"],
+            "question": "Why do forecasts show a range instead of exact numbers?",
+            "answer": """Disease spread involves **many random factors**:
+
+- Who meets whom on any given day
+- Whether a particular encounter leads to transmission
+- Individual variation in how contagious people are
+- Testing and reporting variability
+
+By running **500 Monte Carlo simulations**, we capture this randomness and show you the **range of possible outcomes**, not just one guess.
+
+The shaded region represents the **95% confidence interval** — we expect the true value to fall within this range 95% of the time."""
+        },
+        "accuracy": {
+            "keywords": ["accurate", "accuracy", "reliable", "trust", "how good", "correct", "wrong", "error", "validation"],
+            "question": "How accurate are these forecasts?",
+            "answer": """No forecast is perfectly accurate — just like weather forecasts! However, these models use the **same mathematical frameworks** that professional epidemiologists use.
+
+**Accuracy depends on:**
+- Quality of input parameters
+- How far ahead you're forecasting (shorter = better)
+- Whether conditions change (new variants, interventions, behavior)
+
+**Our validation page** lets you test the model against real historical data and see metrics like MAE, RMSE, and MAPE.
+
+**Rule of thumb:** Short-term forecasts (1-2 weeks) are typically more reliable than longer-term ones."""
+        },
+        "r0": {
+            "keywords": ["r0", "r-naught", "r naught", "spread rate", "reproduction", "basic reproduction", "what is r", "meaning of r"],
+            "question": "What does R₀ (spread rate) mean?",
+            "answer": """The spread rate (**R₀** or "R-naught") answers one simple question:
+
+> *"If one person gets infected in a population where no one is immune, how many people will they spread it to?"*
+
+**Interpretation:**
+- **R₀ = 2** → each person infects 2 others → outbreak grows exponentially
+- **R₀ = 1** → each person infects 1 other → outbreak stays stable  
+- **R₀ < 1** → each person infects less than 1 → outbreak dies out
+
+**Examples:**
+- Measles: R₀ ≈ 12-18 (extremely contagious)
+- COVID-19 (original): R₀ ≈ 2.5-3.5
+- Seasonal flu: R₀ ≈ 1.2-1.4
+
+This is why interventions aim to **reduce R below 1**."""
+        },
+        "underreporting": {
+            "keywords": ["reported", "cases", "true", "actual", "real", "undercount", "underreport", "detection", "testing", "why lower"],
+            "question": "Why are reported cases always lower than true cases?",
+            "answer": """Several reasons for **underreporting**:
+
+1. **Mild/no symptoms** — Many people don't feel sick enough to get tested
+2. **Limited testing** — Not everyone who wants a test can get one
+3. **Reporting delays** — Lag between testing and official recording
+4. **Test sensitivity** — Tests don't catch 100% of true cases
+
+**Real-world example:**
+For COVID-19, CDC estimates the true number of infections was **2-4x higher** than reported cases.
+
+Our model includes a **detection rate slider** to account for this!"""
+        },
+        "interventions": {
+            "keywords": ["intervention", "mask", "lockdown", "vaccine", "social distance", "reduce", "prevention", "control", "how work"],
+            "question": "How do interventions work in the model?",
+            "answer": """Interventions reduce the **effective spread rate**:
+
+- **Masks** → Block respiratory droplets → Lower transmission
+- **Social distancing** → Fewer contact opportunities → Lower transmission  
+- **Lockdowns** → Drastically reduce contacts → ~70% reduction (based on Wuhan/Italy studies)
+- **Vaccination** → Makes people immune → Fewer susceptible people
+
+The **Compare Interventions** page lets you stack multiple interventions and see the combined effect on the epidemic curve.
+
+Intervention effectiveness percentages come from **systematic reviews and meta-analyses** of real-world data."""
+        },
+        "decision": {
+            "keywords": ["real", "decision", "use", "actual", "policy", "government", "official", "educational", "purpose"],
+            "question": "Can I use this for real decision-making?",
+            "answer": """This tool is for **educational purposes** and general understanding.
+
+For actual public health decisions, officials use:
+- More detailed data (age structure, geographic spread, hospital capacity)
+- **Multiple models** compared in ensemble forecasts
+- Expert judgment and local context
+- Real-time updating as new data arrives
+
+Think of this as a **simplified teaching version** that demonstrates the same concepts used by professionals.
+
+For real forecasts, see the **CDC COVID-19 Forecast Hub** which combines 50+ models."""
+        },
+        "seir": {
+            "keywords": ["seir", "exposed", "infectious", "infected", "contagious", "recovered", "susceptible", "compartment", "difference", "state"],
+            "question": "What's the difference between 'exposed' and 'infectious'?",
+            "answer": """The **SEIR model** tracks disease stages:
+
+1. **S (Susceptible)** — Can catch the disease
+2. **E (Exposed)** — Infected but virus is still multiplying. **Cannot spread it yet.**
+3. **I (Infectious)** — Virus has multiplied enough. **Can now spread to others.**
+4. **R (Recovered)** — Immune system has cleared infection. Cannot catch it again (for now).
+
+**Important:** For many diseases (including COVID-19), you can be **contagious BEFORE you have symptoms**! This is why asymptomatic spread is so dangerous.
+
+The **Agent Simulation** page visualizes these states as colored dots:
+🟢 Susceptible → 🟡 Exposed → 🔴 Infectious → 🔵 Recovered"""
+        },
+        "ensemble": {
+            "keywords": ["ensemble", "hybrid", "model", "algorithm", "renewal", "arima", "trend", "how forecast", "method", "technique"],
+            "question": "How does the hybrid ensemble forecasting work?",
+            "answer": """Our **Hybrid Ensemble** combines 3 different models:
+
+| Model | Weight | What it does |
+|-------|--------|--------------|
+| 🔬 **Renewal Equation** | 40% | Estimates time-varying R(t) from case data |
+| 📈 **Trend Extrapolation** | 35% | Statistical pattern matching (ARIMA-style) |
+| 🧬 **SEIR Model** | 25% | Classic epidemiological compartments |
+
+**Why combine them?**
+- No single model is best for all situations
+- Renewal captures R changes; Trend captures patterns; SEIR adds biological constraints
+- Weighted blending produces more robust forecasts than any single model
+
+We run **500 Monte Carlo simulations** with parameter uncertainty to generate confidence intervals."""
+        },
+        "agent": {
+            "keywords": ["agent", "simulation", "abm", "artificial life", "dots", "animation", "visualize", "watch", "spread"],
+            "question": "What is the Agent-Based Simulation?",
+            "answer": """The **Agent-Based Model (ABM)** is an **Artificial Life** visualization:
+
+- Each colored dot is a virtual "person" (agent)
+- Agents move randomly in a 2D space
+- When an infectious agent gets near a susceptible one → possible transmission
+- Agents progress through **S → E → I → R** states
+
+**Two modes:**
+1. **Curve-Guided** — Agents follow the forecast epidemic curve (proportional controller adjusts transmission daily)
+2. **Custom/Emergent** — Pure bottom-up simulation; epidemic curve emerges naturally from agent interactions
+
+**Colors:**
+🟢 Susceptible · 🟡 Exposed · 🔴 Infectious · 🔵 Recovered
+
+This makes abstract forecasts **tangible and intuitive**!"""
+        },
+        "data": {
+            "keywords": ["data", "source", "johns hopkins", "jhu", "ebola", "mpox", "covid", "upload", "csv", "where get"],
+            "question": "What data sources are available?",
+            "answer": """The app supports multiple data sources:
+
+| Source | Disease | Coverage |
+|--------|---------|----------|
+| **Johns Hopkins CSSE** | COVID-19 | Global, 2020-2023 |
+| **Bundled CSV** | Ebola | West Africa 2014-2016 |
+| **Bundled CSV** | Mpox/Monkeypox | Global 2022 |
+| **Upload** | Any disease | Your own CSV file |
+
+**For uploads**, your CSV needs at minimum:
+- A `date` column
+- A `new_cases` or `cases` column
+
+The validation page automatically handles different date formats and normalizes data for comparison."""
+        },
+        "hello": {
+            "keywords": ["hello", "hi", "hey", "greetings", "help", "start", "what can you"],
+            "question": "Hello!",
+            "answer": """👋 **Hello! I'm the FAQ Chatbot for the Disease Forecasting app.**
+
+I can answer questions about:
+- 🦠 **Disease parameters** (R₀, incubation, infectious period)
+- 📊 **Forecasting methods** (SEIR, ensemble, uncertainty)
+- 🎯 **Validation & accuracy** (metrics, confidence intervals)
+- 💉 **Interventions** (vaccines, masks, lockdowns)
+- 🎮 **Agent simulation** (Artificial Life visualization)
+- 📁 **Data sources** (Johns Hopkins, Ebola, Mpox)
+
+**Try asking:**
+- "What is R₀?"
+- "How accurate are the forecasts?"
+- "How does the ensemble work?"
+- "What do the colors mean in the simulation?" """
+        }
+    }
     
-    faqs = [
-        (
-            "Where do the disease parameters come from?",
-            """All default disease parameters are based on peer-reviewed scientific literature and 
-            official reports from health organizations like the CDC (Centers for Disease Control), 
-            WHO (World Health Organization), and ECDC (European Centre for Disease Prevention and Control).
+    # ── Chatbot Matching Function ───────────────────────────────────
+    def find_best_answer(user_query):
+        """Find the best matching FAQ answer using keyword matching."""
+        query_lower = user_query.lower()
+        
+        best_match = None
+        best_score = 0
+        
+        for topic, data in FAQ_KNOWLEDGE.items():
+            score = 0
+            for keyword in data["keywords"]:
+                if keyword in query_lower:
+                    # Longer keywords get higher scores
+                    score += len(keyword.split())
             
-            For example:
-            - COVID-19 parameters are from CDC COVID Data Tracker and WHO situation reports
-            - Influenza parameters are from CDC seasonal flu surveillance data
-            - Measles parameters are from WHO measles fact sheets"""
-        ),
-        (
-            "Why do forecasts show a range instead of exact numbers?",
-            """Disease spread involves many random factors:
-            - Who meets whom on any given day
-            - Whether a particular encounter leads to transmission
-            - Individual variation in how contagious people are
-            
-            By running hundreds of simulations, we capture this randomness and show you 
-            the range of possible outcomes, not just one guess."""
-        ),
-        (
-            "How accurate are these forecasts?",
-            """No forecast is perfectly accurate - just like weather forecasts. However, 
-            these models use the same mathematical frameworks that professional epidemiologists use.
-            
-            The accuracy depends on:
-            - Quality of input parameters
-            - How far ahead you're forecasting
-            - Whether conditions change (new interventions, behavior changes)
-            
-            Short-term forecasts (1-2 weeks) are typically more reliable than longer-term ones."""
-        ),
-        (
-            "What does 'spread rate' or 'R₀' really mean?",
-            """The spread rate (called R₀ or 'R-naught' by scientists) answers one simple question:
-            
-            **"If one person gets infected in a population where no one is immune, 
-            how many people will they spread it to?"**
-            
-            - If R₀ = 2, each person infects 2 others → outbreak grows
-            - If R₀ = 1, each person infects 1 other → outbreak stays stable
-            - If R₀ < 1, each person infects less than 1 other → outbreak dies out
-            
-            This is why interventions aim to reduce transmission - they're trying to get R below 1."""
-        ),
-        (
-            "Why are reported cases always lower than true cases?",
-            """Several reasons:
-            
-            1. **Mild or no symptoms**: Many people don't feel sick enough to get tested
-            2. **Limited testing**: Not everyone who wants a test can get one
-            3. **Reporting delays**: There's a lag between testing and official recording
-            4. **Test sensitivity**: Tests don't catch 100% of true cases
-            
-            For COVID-19, CDC estimates the true number of infections was 2-4x higher than reported cases."""
-        ),
-        (
-            "How do interventions work in the model?",
-            """Interventions reduce the spread rate. For example:
-            
-            - **Masks** reduce transmission by blocking droplets → lower spread rate
-            - **Social distancing** reduces contact opportunities → lower spread rate
-            - **Vaccination** makes people immune → fewer susceptible people
-            
-            The intervention effectiveness percentages are based on real-world studies. 
-            For instance, the 70% reduction for lockdowns comes from studies of Wuhan and Italy."""
-        ),
-        (
-            "Can I use this for real decision-making?",
-            """This tool is for **educational purposes** and general understanding. 
-            
-            For actual public health decisions, officials use:
-            - More detailed data (age structure, geographic spread, hospital capacity)
-            - Multiple models to compare
-            - Expert judgment and local context
-            
-            Think of this as a simplified version that teaches the same concepts."""
-        ),
-        (
-            "What's the difference between 'infected' and 'contagious'?",
-            """Good question! The timeline is:
-            
-            1. **Exposed**: You've caught the virus, but it's still multiplying. You can't spread it yet.
-            2. **Contagious/Infectious**: The virus has multiplied enough that you can now spread it to others.
-            3. **Symptomatic**: You start showing symptoms (if any).
-            4. **Recovered**: Your immune system has cleared the infection.
-            
-            Important: For many diseases (including COVID-19), you can be contagious BEFORE you have symptoms!"""
-        )
+            if score > best_score:
+                best_score = score
+                best_match = topic
+        
+        if best_match and best_score >= 1:
+            return FAQ_KNOWLEDGE[best_match]["answer"]
+        else:
+            return None
+    
+    # ── Initialize Chat History ─────────────────────────────────────
+    if "faq_messages" not in st.session_state:
+        st.session_state.faq_messages = [
+            {"role": "assistant", "content": """👋 **Welcome to the FAQ Chatbot!**
+
+I can answer questions about disease forecasting, the SEIR model, interventions, data sources, and more.
+
+**Try asking me:**
+- "What is R₀?"
+- "How does the ensemble forecasting work?"
+- "Why do forecasts show a range?"
+- "What data sources are available?"
+
+Or just type your question below!"""}
+        ]
+    
+    # ── Display Chat History ────────────────────────────────────────
+    for message in st.session_state.faq_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # ── Chat Input ──────────────────────────────────────────────────
+    if user_input := st.chat_input("Ask me anything about disease forecasting..."):
+        # Add user message to history
+        st.session_state.faq_messages.append({"role": "user", "content": user_input})
+        
+        with st.chat_message("user"):
+            st.markdown(user_input)
+        
+        # Find answer
+        answer = find_best_answer(user_input)
+        
+        if answer:
+            response = answer
+        else:
+            response = f"""🤔 I'm not sure about that specific question. 
+
+Here are topics I can help with:
+- **R₀ / spread rate** — "What is R₀?"
+- **SEIR model** — "What are the disease states?"
+- **Forecasting accuracy** — "How accurate are forecasts?"
+- **Interventions** — "How do vaccines work in the model?"
+- **Ensemble method** — "How does hybrid forecasting work?"
+- **Agent simulation** — "What is the agent-based model?"
+- **Data sources** — "What data is available?"
+- **Uncertainty** — "Why do forecasts show a range?"
+
+Try rephrasing your question, or ask one of these!"""
+        
+        # Add assistant response
+        st.session_state.faq_messages.append({"role": "assistant", "content": response})
+        
+        with st.chat_message("assistant"):
+            st.markdown(response)
+    
+    # ── Sidebar Quick Topics ────────────────────────────────────────
+    st.sidebar.markdown("### 💡 Quick Topics")
+    quick_topics = [
+        "What is R₀?",
+        "How accurate are forecasts?",
+        "How does ensemble work?",
+        "What is SEIR?",
+        "What data sources exist?",
     ]
+    for topic in quick_topics:
+        if st.sidebar.button(topic, key=f"quick_{topic}"):
+            st.session_state.faq_messages.append({"role": "user", "content": topic})
+            answer = find_best_answer(topic)
+            st.session_state.faq_messages.append({"role": "assistant", "content": answer})
+            st.rerun()
     
-    for question, answer in faqs:
-        with st.expander(f"**{question}**"):
-            st.markdown(answer)
+    if st.sidebar.button("🗑️ Clear Chat"):
+        st.session_state.faq_messages = [st.session_state.faq_messages[0]]
+        st.rerun()
     
+    # ── Resources Section (collapsible) ─────────────────────────────
     st.markdown("---")
     
-    st.markdown("## 📚 Want to Learn More?")
-    
-    st.markdown("""
-    Here are reliable sources for disease forecasting information:
-    
-    - **[CDC COVID-19 Forecasting](https://www.cdc.gov/coronavirus/2019-ncov/science/forecasting/forecasts-cases.html)** - 
-      Weekly COVID forecasts from the CDC
-    - **[WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news)** - 
-      Global outbreak reports
-    - **[COVID-19 Forecast Hub](https://covid19forecasthub.org/)** - 
-      Ensemble of multiple forecasting models
-    - **[Our World in Data](https://ourworldindata.org/explorers/coronavirus-data-explorer)** - 
-      Clear visualizations of disease data
-    """)
-    
-    st.markdown("---")
-    
-    st.markdown("## 🛠️ Technical Details")
-    
-    with st.expander("Show technical information"):
+    with st.expander("📚 External Resources"):
         st.markdown("""
-        **Model Type:** Stochastic SEIR (Susceptible-Exposed-Infectious-Recovered)
-        
-        **Simulation Method:** Monte Carlo with Poisson-distributed transitions
-        
-        **Parameters:**
-        - β (beta): Transmission rate = R₀ / infectious_period
-        - σ (sigma): Rate of becoming infectious = 1 / latent_period
-        - γ (gamma): Recovery rate = 1 / infectious_period
-        
-        **Uncertainty Quantification:**
-        - Parameter uncertainty: Normal distribution around point estimates
-        - Stochastic transitions: Poisson-distributed daily changes
-        - 500 simulations per forecast
-        
-        **Sources:**
-        - Disease parameters: CDC, WHO, peer-reviewed literature
-        - Intervention effectiveness: Systematic reviews and meta-analyses
+**Reliable sources for disease forecasting:**
+
+- **[CDC COVID-19 Forecasting](https://www.cdc.gov/coronavirus/2019-ncov/science/forecasting/forecasts-cases.html)** — Weekly forecasts from the CDC
+- **[WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news)** — Global outbreak reports
+- **[COVID-19 Forecast Hub](https://covid19forecasthub.org/)** — Ensemble of 50+ forecasting models
+- **[Our World in Data](https://ourworldindata.org/explorers/coronavirus-data-explorer)** — Clear visualizations
+        """)
+    
+    with st.expander("🛠️ Technical Details"):
+        st.markdown("""
+**Model Types:**
+- Custom Forecast: Stochastic SEIR with Monte Carlo sampling
+- Validation Forecast: Hybrid Ensemble (Renewal 40% + Trend 35% + SEIR 25%)
+
+**Simulation:** 500 Monte Carlo runs with Poisson-distributed transitions
+
+**Parameters:**
+- β (beta) = R₀ / infectious_period
+- σ (sigma) = 1 / latent_period  
+- γ (gamma) = 1 / infectious_period
+
+**Agent Simulation:** SEIR ABM on 100×100 grid with proximity-based transmission
         """)
 
 
