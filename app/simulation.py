@@ -46,6 +46,7 @@ def run_agent_simulation(
     sim_R0: float,
     sim_incubation: int = 3,
     sim_infectious: int = 7,
+    ifr: float = 0.01,
     target_curve: np.ndarray | None = None,
     seed: int = 42,
 ) -> list[dict]:
@@ -64,6 +65,9 @@ def run_agent_simulation(
         Latent period in days (E → I timer).
     sim_infectious : int
         Infectious period in days (I → R timer).
+    ifr : float
+        Infection Fatality Rate (0-1).  When an agent leaves state I,
+        it dies with probability ``ifr`` and recovers otherwise.
     target_curve : np.ndarray or None
         If provided, a 1-D array of length ``sim_days`` giving the
         *fraction* of agents that should become newly infected each day.
@@ -76,7 +80,7 @@ def run_agent_simulation(
     -------
     frames : list[dict]
         One dict per simulated day with keys ``x``, ``y``, ``colors``,
-        ``names``, ``day``, ``S``, ``E``, ``I``, ``R``,
+        ``names``, ``day``, ``S``, ``E``, ``I``, ``R``, ``D``,
         ``new_infections``.
     """
     rng = np.random.RandomState(seed)
@@ -122,12 +126,14 @@ def run_agent_simulation(
             'E': int(np.sum(states == 1)),
             'I': int(np.sum(states == 2)),
             'R': int(np.sum(states == 3)),
+            'D': int(np.sum(states == 4)),
             'new_infections': 0,       # filled below after transmission
         })
 
-        # ---- movement ----------------------------------------------
-        pos_x += vel_x
-        pos_y += vel_y
+        # ---- movement (dead agents don't move) ----------------------
+        alive = states != 4
+        pos_x[alive] += vel_x[alive]
+        pos_y[alive] += vel_y[alive]
 
         # bounce off walls
         oob_x = (pos_x < 0) | (pos_x > 100)
@@ -184,10 +190,16 @@ def run_agent_simulation(
         states[newly_infectious] = 2
         infection_timer[newly_infectious] = sim_infectious
 
-        # ---- state transitions I → R --------------------------------
+        # ---- state transitions I → R or I → D ----------------------
         infection_timer[inf_idx] -= 1
-        newly_recovered = inf_idx[infection_timer[inf_idx] <= 0]
-        states[newly_recovered] = 3
+        leaving_I = inf_idx[infection_timer[inf_idx] <= 0]
+        for agent in leaving_I:
+            if rng.random() < ifr:
+                states[agent] = 4   # Dead
+                vel_x[agent] = 0
+                vel_y[agent] = 0
+            else:
+                states[agent] = 3   # Recovered
 
     return frames
 
@@ -315,14 +327,16 @@ def build_animation_figure(frames_data: list[dict],
             layout=go.Layout(
                 title=f"Day {f['day']+1} | "
                       f"🟢S:{f['S']} 🟡E:{f['E']} "
-                      f"🔴I:{f['I']} 🔵R:{f['R']}"
+                      f"🔴I:{f['I']} 🔵R:{f['R']} "
+                      f"⚫D:{f['D']}"
             ),
         ))
     fig.frames = anim_frames
 
     fig.update_layout(
         title=(f"Day 1 | 🟢S:{initial['S']} 🟡E:{initial['E']} "
-               f"🔴I:{initial['I']} 🔵R:{initial['R']}"),
+               f"🔴I:{initial['I']} 🔵R:{initial['R']} "
+               f"⚫D:{initial['D']}"),
         xaxis=dict(range=[0, 100], showgrid=False,
                    zeroline=False, showticklabels=False),
         yaxis=dict(range=[0, 100], showgrid=False,
@@ -388,8 +402,12 @@ def build_seir_curves_figure(frames_data: list[dict]) -> go.Figure:
     fig.add_trace(go.Scatter(x=days, y=[f['R'] for f in frames_data],
                              name='Recovered',
                              line=dict(color='#3498db', width=2)))
+    fig.add_trace(go.Scatter(x=days, y=[f['D'] for f in frames_data],
+                             name='Dead',
+                             line=dict(color='#7f8c8d', width=2,
+                                       dash='dot')))
     fig.update_layout(
-        title='SEIR Compartment Counts from Agent Simulation',
+        title='SEIRD Compartment Counts from Agent Simulation',
         xaxis_title='Day',
         yaxis_title='Number of Agents',
         template='plotly_dark',
@@ -404,15 +422,20 @@ def compute_statistics(frames_data: list[dict], n_agents: int) -> dict:
     I_counts = [f['I'] for f in frames_data]
     R_counts = [f['R'] for f in frames_data]
     E_counts = [f['E'] for f in frames_data]
+    D_counts = [f['D'] for f in frames_data]
 
     peak_infected = max(I_counts)
     peak_day      = I_counts.index(peak_infected) + 1
-    total_infected = R_counts[-1] + I_counts[-1] + E_counts[-1]
+    total_infected = R_counts[-1] + I_counts[-1] + E_counts[-1] + D_counts[-1]
+    total_deaths   = D_counts[-1]
+    mortality_rate = (total_deaths / max(total_infected, 1)) * 100
     attack_rate    = (total_infected / n_agents) * 100
 
     return {
         'peak_infected':  peak_infected,
         'peak_day':       peak_day,
         'total_infected': total_infected,
+        'total_deaths':   total_deaths,
+        'mortality_rate': mortality_rate,
         'attack_rate':    attack_rate,
     }

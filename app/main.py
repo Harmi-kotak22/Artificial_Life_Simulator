@@ -1261,6 +1261,23 @@ elif page == "🔮 Forecast an Outbreak":
             st.caption("📊 Moderate detection - typical for diseases with testing programs")
         else:
             st.caption("📊 High detection - typical for severe diseases requiring hospitalization")
+        
+        fatality_rate = st.slider(
+            "💀 Infection Fatality Rate (IFR %)",
+            min_value=0.0, max_value=60.0,
+            value=float(profile.get('percent_fatal', 1.0)),
+            step=0.1,
+            help="Percentage of infected people who die. "
+                 f"Default for {disease_choice}: {profile.get('percent_fatal', 1.0)}% (from CDC/WHO data)"
+        )
+        if fatality_rate < 0.5:
+            st.caption("📊 Very low fatality - similar to seasonal flu")
+        elif fatality_rate < 2:
+            st.caption("📊 Low fatality - similar to COVID-19")
+        elif fatality_rate < 10:
+            st.caption("📊 Moderate fatality - significant public health concern")
+        else:
+            st.caption("📊 High fatality - severe disease (e.g. Ebola, MERS)")
     
     st.markdown("---")
     
@@ -1379,12 +1396,17 @@ elif page == "🔮 Forecast an Outbreak":
             initial_E = initial_cases // 2  # Some exposed
             initial_S = population - initial_I - initial_E - initial_immune
             
-            # Storage for all simulations
+            # Infection Fatality Rate from user slider
+            ifr = fatality_rate / 100.0
+            
+            # Storage for all simulations (SEIRD)
             all_S = np.zeros((forecast_days, n_simulations))
             all_E = np.zeros((forecast_days, n_simulations))
             all_I = np.zeros((forecast_days, n_simulations))
             all_R = np.zeros((forecast_days, n_simulations))
+            all_D = np.zeros((forecast_days, n_simulations))
             all_new_cases = np.zeros((forecast_days, n_simulations))
+            all_new_deaths = np.zeros((forecast_days, n_simulations))
             
             progress_bar = st.progress(0, text="Simulating possible outbreak scenarios...")
             
@@ -1401,29 +1423,36 @@ elif page == "🔮 Forecast an Outbreak":
                 sim_initial_E = max(1, int(initial_E * init_uncertainty))
                 sim_initial_S = population - sim_initial_I - sim_initial_E - initial_immune
                 
-                S, E, I, R = float(sim_initial_S), float(sim_initial_E), float(sim_initial_I), float(initial_immune)
+                S, E, I, R, D = float(sim_initial_S), float(sim_initial_E), float(sim_initial_I), float(initial_immune), 0.0
                 
                 for day in range(forecast_days):
-                    # Stochastic SEIR model
+                    # Stochastic SEIRD model
                     new_exposed = np.random.poisson(max(0, sim_beta * S * I / population))
                     new_exposed = min(new_exposed, S)
                     
                     new_infectious = np.random.poisson(max(0, sim_sigma * E))
                     new_infectious = min(new_infectious, E)
                     
-                    new_recovered = np.random.poisson(max(0, sim_gamma * I))
-                    new_recovered = min(new_recovered, I)
+                    new_leaving_I = np.random.poisson(max(0, sim_gamma * I))
+                    new_leaving_I = min(new_leaving_I, I)
+                    
+                    # Split I→R and I→D using IFR
+                    new_dead = int(np.random.binomial(int(new_leaving_I), ifr))
+                    new_recovered = int(new_leaving_I) - new_dead
                     
                     S = S - new_exposed
                     E = E + new_exposed - new_infectious
-                    I = I + new_infectious - new_recovered
+                    I = I + new_infectious - new_leaving_I
                     R = R + new_recovered
+                    D = D + new_dead
                     
                     all_S[day, sim] = S
                     all_E[day, sim] = E
                     all_I[day, sim] = I
                     all_R[day, sim] = R
+                    all_D[day, sim] = D
                     all_new_cases[day, sim] = new_infectious
+                    all_new_deaths[day, sim] = new_dead
                 
                 if (sim + 1) % 50 == 0:
                     progress_bar.progress((sim + 1) / n_simulations, 
@@ -1433,8 +1462,9 @@ elif page == "🔮 Forecast an Outbreak":
             
             # Store results - include all parameters needed by other pages
             st.session_state.forecast_results = {
-                'S': all_S, 'E': all_E, 'I': all_I, 'R': all_R,
+                'S': all_S, 'E': all_E, 'I': all_I, 'R': all_R, 'D': all_D,
                 'new_cases': all_new_cases,
+                'new_deaths': all_new_deaths,
                 'days': forecast_days,
                 'population': population,
                 'disease': disease_choice,
@@ -1442,6 +1472,7 @@ elif page == "🔮 Forecast an Outbreak":
                 'ci_lower': ci_lower,
                 'ci_upper': ci_upper,
                 'detection_rate': detection_rate,
+                'ifr': ifr,
                 # Additional parameters for Compare Interventions & Validate Forecast
                 'initial_infected': initial_cases,
                 'days_until_contagious': days_until_contagious,
@@ -1471,6 +1502,16 @@ elif page == "🔮 Forecast an Outbreak":
         lower_new = np.percentile(new_cases, results['ci_lower'], axis=1)
         upper_new = np.percentile(new_cases, results['ci_upper'], axis=1)
         
+        # Death statistics
+        D_data = results.get('D', np.zeros_like(I_data))
+        new_deaths_data = results.get('new_deaths', np.zeros_like(new_cases))
+        mean_D = np.mean(D_data, axis=1)
+        mean_new_deaths = np.mean(new_deaths_data, axis=1)
+        lower_new_deaths = np.percentile(new_deaths_data, results['ci_lower'], axis=1)
+        upper_new_deaths = np.percentile(new_deaths_data, results['ci_upper'], axis=1)
+        total_deaths_forecast = mean_D[-1] if len(mean_D) > 0 else 0
+        ifr_display = results.get('ifr', 0) * 100
+        
         # Key findings
         peak_day = np.argmax(mean_I) + 1
         peak_cases = np.max(mean_I)
@@ -1478,7 +1519,7 @@ elif page == "🔮 Forecast an Outbreak":
         
         st.markdown("### 🎯 Key Findings")
         
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             st.metric(
@@ -1510,6 +1551,13 @@ elif page == "🔮 Forecast an Outbreak":
             else:
                 severity = "🟢 Mild"
             st.metric("Outbreak Severity", severity)
+        
+        with col5:
+            st.metric(
+                "💀 Estimated Deaths",
+                f"{total_deaths_forecast:,.0f}",
+                help=f"Based on IFR of {ifr_display:.1f}% for {results['disease']}"
+            )
         
         # Main forecast chart
         st.markdown("### 📈 Forecast: People Currently Infected Over Time")
@@ -1621,6 +1669,50 @@ elif page == "🔮 Forecast an Outbreak":
         </div>
         """, unsafe_allow_html=True)
         
+        # Deaths chart
+        if total_deaths_forecast > 0:
+            st.markdown(f"### 💀 Forecast: Deaths Over Time (IFR = {ifr_display:.1f}%)")
+            
+            fig3 = go.Figure()
+            
+            fig3.add_trace(go.Scatter(
+                x=np.concatenate([days, days[::-1]]),
+                y=np.concatenate([upper_new_deaths, lower_new_deaths[::-1]]),
+                fill='toself', fillcolor='rgba(100, 100, 100, 0.2)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='Deaths (range)', hoverinfo='skip'
+            ))
+            fig3.add_trace(go.Scatter(
+                x=days, y=mean_new_deaths,
+                mode='lines', line=dict(color='#7f8c8d', width=3),
+                name='Daily deaths'
+            ))
+            fig3.add_trace(go.Scatter(
+                x=days, y=mean_D,
+                mode='lines', line=dict(color='#2c3e50', width=2, dash='dash'),
+                name='Cumulative deaths'
+            ))
+            
+            fig3.update_layout(
+                xaxis_title="Days from Now",
+                yaxis_title="Deaths",
+                height=400,
+                hovermode='x unified',
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+            )
+            
+            st.plotly_chart(fig3, use_container_width=True)
+            
+            st.markdown(f"""
+            <div class="warning-box">
+            <strong>⚠️ Mortality Projection:</strong><br><br>
+            Based on the <strong>Infection Fatality Rate (IFR) of {ifr_display:.1f}%</strong> for {results['disease']}:<br>
+            • Estimated total deaths: <strong>{total_deaths_forecast:,.0f}</strong><br>
+            • Peak daily deaths: <strong>{np.max(mean_new_deaths):,.0f}</strong> (around day {np.argmax(mean_new_deaths)+1})<br><br>
+            <em>IFR varies by disease, age, and healthcare quality. These are population-average estimates.</em>
+            </div>
+            """, unsafe_allow_html=True)
+        
         # Download data
         st.markdown("### 💾 Download Forecast Data")
         
@@ -1630,7 +1722,9 @@ elif page == "🔮 Forecast an Outbreak":
             'Infected_Lower': lower_I,
             'Infected_Upper': upper_I,
             'NewCases_Mean': mean_new,
-            'NewCases_Reported': reported_mean
+            'NewCases_Reported': reported_mean,
+            'NewDeaths_Mean': mean_new_deaths,
+            'CumulativeDeaths_Mean': mean_D
         })
         
         st.download_button(
@@ -1814,12 +1908,15 @@ elif page == "⚖️ Compare Interventions":
             beta = profile['spread_rate'] / profile['days_contagious']
             sigma = 1.0 / max(profile['days_until_contagious'], 0.5)
             gamma = 1.0 / profile['days_contagious']
+            comp_ifr = profile.get('percent_fatal', 1.0) / 100.0
             
             # Storage
             baseline_I = np.zeros((horizon, n_sims))
             intervention_I = np.zeros((horizon, n_sims))
             baseline_new_cases = np.zeros((horizon, n_sims))
             intervention_new_cases = np.zeros((horizon, n_sims))
+            baseline_D = np.zeros((horizon, n_sims))
+            intervention_D = np.zeros((horizon, n_sims))
             
             for sim in range(n_sims):
                 # Parameter variation
@@ -1828,22 +1925,25 @@ elif page == "⚖️ Compare Interventions":
                 sim_gamma = np.random.normal(gamma, gamma * 0.1)
                 
                 # Baseline scenario
-                S, E, I, R = intervention_population - intervention_start_cases, intervention_start_cases // 2, intervention_start_cases, 0
+                S, E, I, R, D = intervention_population - intervention_start_cases, intervention_start_cases // 2, intervention_start_cases, 0, 0
                 
                 for day in range(horizon):
                     new_E = np.random.poisson(max(0, sim_beta * S * I / intervention_population))
                     new_E = min(new_E, S)
                     new_I = np.random.poisson(max(0, sim_sigma * E))
                     new_I = min(new_I, E)
-                    new_R = np.random.poisson(max(0, sim_gamma * I))
-                    new_R = min(new_R, I)
+                    leaving_I = np.random.poisson(max(0, sim_gamma * I))
+                    leaving_I = min(leaving_I, I)
+                    new_dead = int(np.random.binomial(int(leaving_I), comp_ifr))
+                    new_R = int(leaving_I) - new_dead
                     
-                    S, E, I, R = S - new_E, E + new_E - new_I, I + new_I - new_R, R + new_R
+                    S, E, I, R, D = S - new_E, E + new_E - new_I, I + new_I - leaving_I, R + new_R, D + new_dead
                     baseline_I[day, sim] = I
                     baseline_new_cases[day, sim] = new_I
+                    baseline_D[day, sim] = D
                 
                 # Intervention scenario
-                S, E, I, R = intervention_population - intervention_start_cases, intervention_start_cases // 2, intervention_start_cases, 0
+                S, E, I, R, D = intervention_population - intervention_start_cases, intervention_start_cases // 2, intervention_start_cases, 0, 0
                 
                 for day in range(horizon):
                     if day >= adjusted_start_day:
@@ -1855,18 +1955,23 @@ elif page == "⚖️ Compare Interventions":
                     new_E = min(new_E, S)
                     new_I = np.random.poisson(max(0, sim_sigma * E))
                     new_I = min(new_I, E)
-                    new_R = np.random.poisson(max(0, sim_gamma * I))
-                    new_R = min(new_R, I)
+                    leaving_I = np.random.poisson(max(0, sim_gamma * I))
+                    leaving_I = min(leaving_I, I)
+                    new_dead = int(np.random.binomial(int(leaving_I), comp_ifr))
+                    new_R = int(leaving_I) - new_dead
                     
-                    S, E, I, R = S - new_E, E + new_E - new_I, I + new_I - new_R, R + new_R
+                    S, E, I, R, D = S - new_E, E + new_E - new_I, I + new_I - leaving_I, R + new_R, D + new_dead
                     intervention_I[day, sim] = I
                     intervention_new_cases[day, sim] = new_I
+                    intervention_D[day, sim] = D
             
             st.session_state.intervention_results = {
                 'baseline': baseline_I,
                 'intervention': intervention_I,
                 'baseline_new_cases': baseline_new_cases,
                 'intervention_new_cases': intervention_new_cases,
+                'baseline_D': baseline_D,
+                'intervention_D': intervention_D,
                 'intervention_name': ' + '.join(intervention_choices) if len(intervention_choices) > 1 else intervention_choices[0],
                 'intervention_count': len(intervention_choices),
                 'start_day': adjusted_start_day,
@@ -1874,7 +1979,8 @@ elif page == "⚖️ Compare Interventions":
                 'disease': disease_for_intervention,
                 'population': intervention_population,
                 'days': horizon,
-                'initial_infected': intervention_start_cases
+                'initial_infected': intervention_start_cases,
+                'ifr': comp_ifr
             }
             
             st.success("✅ Comparison complete!")
@@ -1923,11 +2029,13 @@ elif page == "⚖️ Compare Interventions":
             )
         
         with col3:
-            lives_saved_estimate = (base_peak - int_peak) * (profile['percent_fatal'] / 100) * 0.5
+            baseline_deaths = np.mean(r['baseline_D'][-1, :]) if 'baseline_D' in r else 0
+            intervention_deaths = np.mean(r['intervention_D'][-1, :]) if 'intervention_D' in r else 0
+            lives_saved = baseline_deaths - intervention_deaths
             st.metric(
-                "💚 Estimated Lives Saved",
-                f"~{lives_saved_estimate:,.0f}",
-                help="Rough estimate based on peak reduction and disease fatality rate"
+                "💚 Lives Saved",
+                f"~{lives_saved:,.0f}",
+                help=f"SEIRD model: {baseline_deaths:,.0f} deaths without vs {intervention_deaths:,.0f} with intervention (IFR={r.get('ifr', 0.01)*100:.1f}%)"
             )
         
         # Comparison chart
@@ -3455,6 +3563,47 @@ elif page == "✅ Validate Forecast":
             # Download validation report
             st.markdown("### 💾 Download Validation Report")
             
+            # Compute projected deaths from forecast
+            if "comparison_forecast" in st.session_state:
+                val_disease = comp.get('disease', '')
+            else:
+                val_disease = forecast.get('disease', '') if 'forecast' in dir() else st.session_state.get('forecast_results', {}).get('disease', '')
+            # Try to find the disease in profiles for IFR
+            val_ifr = 0.01  # default 1%
+            for dname, dprof in DISEASE_PROFILES.items():
+                if dname.lower() in val_disease.lower() or val_disease.lower() in dname.lower():
+                    val_ifr = dprof.get('percent_fatal', 1.0) / 100.0
+                    break
+            
+            forecast_deaths_mean = forecast_mean * val_ifr
+            total_projected_deaths = np.sum(forecast_deaths_mean)
+            actual_total_cases = np.sum(actual_cases)
+            
+            if val_ifr > 0:
+                st.markdown("### 💀 Projected Mortality Estimates")
+                col_d1, col_d2, col_d3 = st.columns(3)
+                with col_d1:
+                    st.metric(
+                        "Projected Deaths (from forecast)",
+                        f"{total_projected_deaths:,.0f}",
+                        help=f"Forecast cases × IFR ({val_ifr*100:.1f}%)"
+                    )
+                with col_d2:
+                    actual_deaths_est = actual_total_cases * val_ifr
+                    st.metric(
+                        "Estimated Deaths (from real data)",
+                        f"{actual_deaths_est:,.0f}",
+                        help=f"Actual cases × IFR ({val_ifr*100:.1f}%)"
+                    )
+                with col_d3:
+                    st.metric(
+                        "IFR Used",
+                        f"{val_ifr*100:.1f}%",
+                        help="Infection Fatality Rate from disease profile"
+                    )
+                st.caption(f"⚠️ Death estimates are approximate, derived by applying the disease IFR ({val_ifr*100:.1f}%) to case counts.")
+            
+            
             report_df = pd.DataFrame({
                 'Date': comparison_dates,
                 'Day': np.arange(1, n_compare + 1),
@@ -3764,6 +3913,7 @@ elif page == "🎮 Agent Simulation":
         sim_R0         = forecast.get('R0', forecast.get('spread_rate', 2.5))
         sim_incubation = forecast.get('days_until_contagious', 3)
         sim_infectious = forecast.get('days_contagious', 7)
+        sim_ifr        = forecast.get('ifr', 0.01)
         target_curve   = build_target_curve_from_forecast(forecast, n_agents)
         st.info(f"📊 **Curve-Guided Mode** — agents track the forecast epidemic curve\n\n"
                 f"R₀ = {sim_R0:.1f} · Duration = {sim_days} days · "
@@ -3774,6 +3924,7 @@ elif page == "🎮 Agent Simulation":
         sim_R0         = comp.get('R0', 2.5)
         sim_incubation = 3
         sim_infectious = 7
+        sim_ifr        = comp.get('ifr', 0.01)
         target_curve   = build_target_curve_from_forecast(comp, n_agents)
         st.info(f"📊 **Curve-Guided Mode** — agents track the validation ensemble curve\n\n"
                 f"R₀ = {sim_R0:.1f} · Duration = {sim_days} days · "
@@ -3802,6 +3953,7 @@ elif page == "🎮 Agent Simulation":
             sim_R0 = 2.5
         sim_incubation = 3
         sim_infectious = 7
+        sim_ifr        = 0.01
         target_curve   = build_target_curve_from_validation(val_data, n_agents)
         val_src = st.session_state.get('validation_source', 'Real Data')
         st.info(f"📊 **Curve-Guided Mode** — agents track the real-world case curve\n\n"
@@ -3817,6 +3969,7 @@ elif page == "🎮 Agent Simulation":
             sim_incubation = st.slider("Incubation Period (days)", 1, 10, 3)
         with col3:
             sim_infectious = st.slider("Infectious Period (days)", 3, 21, 7)
+        sim_ifr = st.slider("Infection Fatality Rate (%)", 0.0, 60.0, 1.0, 0.1) / 100.0
         st.info("🔧 **Custom Mode** — pure emergent ABM, no target curve")
     
     # ── run simulation ──────────────────────────────────────────────
@@ -3829,6 +3982,7 @@ elif page == "🎮 Agent Simulation":
                 sim_incubation=sim_incubation,
                 sim_infectious=sim_infectious,
                 target_curve=target_curve,
+                ifr=sim_ifr,
                 seed=42,
             )
             
@@ -3845,7 +3999,7 @@ elif page == "🎮 Agent Simulation":
             st.markdown("### 📊 Simulation Statistics")
             stats = compute_statistics(frames_data, n_agents)
             
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4, col5, col6 = st.columns(6)
             with col1:
                 st.metric("Peak Infections", stats['peak_infected'])
             with col2:
@@ -3854,6 +4008,10 @@ elif page == "🎮 Agent Simulation":
                 st.metric("Total Infected", stats['total_infected'])
             with col4:
                 st.metric("Attack Rate", f"{stats['attack_rate']:.1f}%")
+            with col5:
+                st.metric("💀 Total Deaths", stats['total_deaths'])
+            with col6:
+                st.metric("Mortality Rate", f"{stats['mortality_rate']:.1f}%")
             
             st.success("✅ Simulation complete! Use the Play button to watch the disease spread through the population.")
             
@@ -4058,6 +4216,32 @@ This makes abstract forecasts **tangible and intuitive**!"""
 
 The validation page automatically handles different date formats and normalizes data for comparison."""
         },
+        "deaths": {
+            "keywords": ["death", "deaths", "dead", "die", "dying", "fatal", "fatality", "ifr", "mortality", "seird", "killed", "percent_fatal"],
+            "question": "How does the app model deaths?",
+            "answer": """💀 **The app uses a SEIRD model** — adding a **D (Dead)** compartment to the classic SEIR framework.
+
+**How it works:**
+- When an infectious agent's recovery timer expires, the model rolls a random check against the **Infection Fatality Rate (IFR)**
+- With probability **IFR** → the individual dies (state D)
+- With probability **1 − IFR** → the individual recovers (state R)
+
+**IFR values by disease:**
+- COVID-19 Original: **1.0%**
+- COVID-19 Delta: **1.5%**
+- COVID-19 Omicron: **0.3%**
+- Seasonal Flu: **0.1%**
+- Pandemic Flu: **2.5%**
+- Measles: **0.2%**
+- Ebola: **50%**
+- Mpox: **0.1%**
+
+**Where you'll see deaths:**
+- 📈 **Forecast page** — death chart with daily & cumulative deaths
+- ✅ **Validation page** — projected mortality estimates
+- ⚖️ **Compare Interventions** — lives saved calculation
+- 🎮 **Agent Simulation** — dead agents shown as ⚫ black dots that stop moving"""
+        },
         "hello": {
             "keywords": ["hello", "hi", "hey", "greetings", "help", "start", "what can you"],
             "question": "Hello!",
@@ -4070,12 +4254,14 @@ I can answer questions about:
 - 💉 **Interventions** (vaccines, masks, lockdowns)
 - 🎮 **Agent simulation** (Artificial Life visualization)
 - 📁 **Data sources** (Johns Hopkins, Ebola, Mpox)
+- 💀 **Deaths & mortality** (SEIRD model, IFR)
 
 **Try asking:**
 - "What is R₀?"
 - "How accurate are the forecasts?"
 - "How does the ensemble work?"
-- "What do the colors mean in the simulation?" """
+- "What do the colors mean in the simulation?"
+- "How does the app model deaths?" """
         }
     }
     
