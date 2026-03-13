@@ -1292,7 +1292,7 @@ elif page == "🔮 Forecast an Outbreak":
             ["Small town (10,000)", "Small city (100,000)", "Medium city (500,000)",
              "Large city (1,000,000)", "Metropolitan area (5,000,000)", 
              "🌍 USA (330 million)", "🌍 UK/France/Germany (60-80 million)", 
-             "🌍 India/China (1.4 billion)", "Custom"],
+             "🌍 India/China (1.4 billion)", "🌍 World (8.1 billion)", "Custom"],
             index=1
         )
         
@@ -1304,13 +1304,14 @@ elif page == "🔮 Forecast an Outbreak":
             "Metropolitan area (5,000,000)": 5000000,
             "🌍 USA (330 million)": 330000000,
             "🌍 UK/France/Germany (60-80 million)": 67000000,
-            "🌍 India/China (1.4 billion)": 1400000000
+            "🌍 India/China (1.4 billion)": 1400000000,
+            "🌍 World (8.1 billion)": 8100000000
         }
         
         if population_preset == "Custom":
             population = st.number_input("Enter population size", 
-                                        min_value=1000, max_value=2000000000, value=100000, step=1000000,
-                                        help="Max: 2 billion (supports all countries including India & China)")
+                                        min_value=1000, max_value=10000000000, value=100000, step=1000000,
+                                        help="Max: 10 billion (supports world population)")
         else:
             population = pop_map[population_preset]
             st.info(f"Population: **{population:,}** people")
@@ -2227,27 +2228,36 @@ elif page == "✅ Validate Forecast":
         st.info(f"📅 Time period will match your forecast: **{forecast.get('days', 90)} days** from selected start date")
     
     col1, col2 = st.columns(2)
-    
+
     today = datetime.now().date()
-    
+
+    # Disease/source-specific calendar bounds
+    if "Ebola" in data_source:
+        min_date = datetime(2014, 3, 1).date()
+        max_date = datetime(2016, 3, 31).date()
+        default_start = datetime(2014, 6, 1).date()
+        default_end = datetime(2015, 6, 30).date()
+    elif "Mpox" in data_source:
+        min_date = datetime(2022, 5, 1).date()
+        max_date = datetime(2022, 12, 31).date()
+        default_start = datetime(2022, 5, 7).date()
+        default_end = datetime(2022, 12, 31).date()
+    else:
+        # Johns Hopkins CSSE time-series ended in 2023.
+        min_date = datetime(2020, 1, 1).date()
+        max_date = datetime(2023, 3, 31).date()
+        default_start = datetime(2020, 6, 1).date()
+        default_end = datetime(2023, 3, 31).date()
+
+    st.caption(f"📅 Calendar range for this data source: {min_date} to {max_date}")
+
     with col1:
-        # Set default dates based on data source
-        if "Ebola" in data_source:
-            default_start = datetime(2014, 6, 1).date()
-            min_date = datetime(2014, 3, 1).date()
-        elif "Mpox" in data_source:
-            default_start = datetime(2022, 5, 7).date()
-            min_date = datetime(2022, 5, 1).date()
-        else:
-            default_start = datetime(2020, 6, 1).date()
-            min_date = datetime(2020, 1, 1).date()
-        
         start_date = st.date_input(
             "Start date (historical outbreak to compare against)",
             value=default_start,
             min_value=min_date,
-            max_value=today,
-            help="Select when the historical outbreak you want to compare against started",
+            max_value=max_date,
+            help="Only dates available for the selected disease/source are allowed",
             key="validation_start_date"
         )
     
@@ -2257,11 +2267,14 @@ elif page == "✅ Validate Forecast":
             forecast_days = forecast.get('days', 90)
             auto_end_date = start_date + timedelta(days=forecast_days)
             
-            # Check if calculated end date exceeds today
-            if auto_end_date > today:
-                # Cap at today and show warning
-                capped_end_date = today
-                st.warning(f"⚠️ Forecast duration ({forecast_days} days) extends beyond today. End date capped at {today.strftime('%Y-%m-%d')}. For full validation, select an earlier start date.")
+            # Check if calculated end date exceeds the selected data source range
+            if auto_end_date > max_date:
+                # Cap at source max date and show warning
+                capped_end_date = max_date
+                st.warning(
+                    f"⚠️ Forecast duration ({forecast_days} days) exceeds available {data_source} data. "
+                    f"End date capped at {max_date.strftime('%Y-%m-%d')}. Select an earlier start date for full validation."
+                )
             else:
                 capped_end_date = auto_end_date
             
@@ -2276,19 +2289,13 @@ elif page == "✅ Validate Forecast":
             # Store the actual date object for later use
             end_date = capped_end_date
         else:
-            # Set default end date based on data source
-            if "Ebola" in data_source:
-                default_end = datetime(2015, 6, 30).date()
-            elif "Mpox" in data_source:
-                default_end = datetime(2022, 12, 31).date()
-            else:
-                default_end = datetime(2023, 3, 31).date()
-            
+            # Keep default end within [start_date, max_date] to avoid API exceptions.
+            safe_default_end = min(max(default_end, start_date), max_date)
             end_date = st.date_input(
                 "End date",
-                value=default_end,
-                min_value=min_date,
-                max_value=today,
+                value=safe_default_end,
+                min_value=start_date,
+                max_value=max_date,
                 key="validation_end_date"
             )
     

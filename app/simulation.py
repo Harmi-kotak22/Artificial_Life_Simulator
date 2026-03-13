@@ -33,8 +33,20 @@ import plotly.graph_objects as go
 
 
 # ── Colours & labels ────────────────────────────────────────────────
-STATE_COLORS = {0: '#2ecc71', 1: '#f39c12', 2: '#e74c3c', 3: '#3498db'}
-STATE_NAMES  = {0: 'Susceptible', 1: 'Exposed', 2: 'Infectious', 3: 'Recovered'}
+STATE_COLORS = {
+    0: '#2ecc71',  # Susceptible
+    1: '#f39c12',  # Exposed
+    2: '#e74c3c',  # Infectious
+    3: '#3498db',  # Recovered
+    4: '#1a1a1a',  # Dead
+}
+STATE_NAMES  = {
+    0: 'Susceptible',
+    1: 'Exposed',
+    2: 'Infectious',
+    3: 'Recovered',
+    4: 'Dead',
+}
 
 
 # ====================================================================
@@ -113,8 +125,9 @@ def run_agent_simulation(
 
     for day in range(sim_days):
         # ---- record frame ------------------------------------------
-        frame_colors = [STATE_COLORS[s] for s in states]
-        frame_names  = [STATE_NAMES[s]  for s in states]
+        # Guard against unexpected state ids so rendering never crashes.
+        frame_colors = [STATE_COLORS.get(int(s), '#7f8c8d') for s in states]
+        frame_names  = [STATE_NAMES.get(int(s), 'Unknown') for s in states]
 
         frames.append({
             'x': pos_x.copy(),
