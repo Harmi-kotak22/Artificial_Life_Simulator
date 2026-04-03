@@ -1,0 +1,119 @@
+UPDFF FAQ KNOWLEDGE CORPUS
+Version: 1.0
+Scope: Disease Outbreak Forecaster app
+
+SECTION: PROJECT OVERVIEW
+The Disease Outbreak Forecaster is an uncertainty-aware forecasting dashboard built with Streamlit.
+It supports outbreak forecasting, forecast validation, intervention comparison, agent-based simulation, and FAQ assistance.
+The forecasting workflow is probabilistic and uses multiple simulations to represent uncertainty.
+
+SECTION: KEY EPIDEMIOLOGY TERMS
+R0 (basic reproduction number): average number of secondary infections from one infectious person in a fully susceptible population.
+Interpretation:
+- R0 > 1: outbreak tends to grow
+- R0 = 1: outbreak is stable
+- R0 < 1: outbreak declines
+
+SEIR states:
+- S: Susceptible
+- E: Exposed (infected but not yet infectious)
+- I: Infectious
+- R: Recovered
+
+SEIRD extension:
+- D: Dead
+The app uses IFR to split I to R or D.
+
+IFR (Infection Fatality Rate): fraction of all infected individuals who die.
+In the model, when infectious individuals leave I:
+- with probability IFR, transition to D
+- with probability 1 - IFR, transition to R
+
+SECTION: FORECASTING METHOD
+The app uses a hybrid ensemble strategy for comparison forecasting and probabilistic outputs.
+Typical structure includes:
+- Renewal-style component
+- Trend/statistical component
+- Mechanistic compartment component
+Outputs are generated from repeated stochastic simulations and displayed as mean plus uncertainty interval.
+
+Why forecasts show a range:
+- random transmission events
+- parameter uncertainty
+- under-reporting and observation noise
+- changing epidemic dynamics
+
+SECTION: VALIDATION
+Validation compares forecasted values with real-world data over aligned dates.
+Common metrics shown in the app:
+- MAE (Mean Absolute Error)
+- RMSE (Root Mean Square Error)
+- MAPE (Mean Absolute Percentage Error)
+- Bias
+- Coverage of prediction interval
+- Correlation
+
+Coverage interpretation:
+If using an 80 percent interval, ideal coverage is around 80 percent.
+- Too low coverage: intervals too narrow
+- Too high coverage: intervals too wide
+
+SECTION: INTERVENTIONS
+Interventions reduce effective spread and alter outbreak trajectory.
+Examples:
+- Masks
+- Distancing
+- Lockdown
+- Vaccination
+Intervention comparison reports expected reduction in peak, cases, and mortality-related impact.
+
+SECTION: AGENT SIMULATION
+The agent simulation provides an artificial-life style outbreak visualization.
+Modes:
+- Curve-guided mode: follows target epidemic curve
+- Custom/emergent mode: behavior emerges from interactions
+
+Agent colors:
+- Green: Susceptible
+- Yellow: Exposed
+- Red: Infectious
+- Blue: Recovered
+- Black: Dead
+
+SECTION: DATA SOURCES
+Supported real-world data in app workflow:
+- Johns Hopkins CSSE (COVID-19)
+- Bundled Ebola dataset (West Africa 2014-2016)
+- Bundled Mpox dataset (global 2022)
+- User-uploaded CSV data
+
+Expected upload columns:
+- date
+- new_cases (or compatible case column)
+
+SECTION: CHATBOT USAGE POLICY
+The FAQ chatbot should answer using retrieved context from this corpus and related project docs.
+If confidence is low or no relevant context is retrieved, it should:
+- state uncertainty
+- suggest supported topics
+- avoid fabricating facts
+
+SECTION: SUPPORTED FAQ TOPICS
+- disease parameters and defaults
+- R0 and spread interpretation
+- uncertainty intervals
+- validation metrics and reliability
+- interventions and expected effects
+- SEIR/SEIRD state interpretation
+- data source availability
+- mortality and IFR interpretation
+
+SECTION: EXAMPLE Q AND A SNIPPETS
+Q: Why is forecast shown as a band and not one line?
+A: Because outbreak evolution is stochastic and uncertain. The band summarizes multiple simulations.
+
+Q: Why can projected deaths be higher than estimated deaths from real data?
+A: If forecasted case counts are higher than actual counts, applying the same IFR yields higher projected deaths.
+
+Q: Why changing IFR does not heavily change infection curve?
+A: IFR mainly controls I to R versus I to D transitions. Transmission is driven mostly by spread parameters.

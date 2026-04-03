@@ -22,6 +22,13 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import json
+from pathlib import Path
+
+from rag_faq import (
+    LocalFAQRetriever,
+    load_faq_chunks,
+    generate_rag_answer_with_debug,
+)
 
 # Page configuration - MUST BE FIRST STREAMLIT COMMAND
 st.set_page_config(
@@ -4044,6 +4051,19 @@ elif page == "🎮 Agent Simulation":
 elif page == "❓ FAQ & Help":
     st.markdown("# 🤖 FAQ Chatbot")
     st.markdown('<p class="sub-header">Ask me anything about disease forecasting!</p>', unsafe_allow_html=True)
+
+    @st.cache_resource
+    def get_local_faq_retriever(corpus_mtime: float):
+        corpus_path = Path(__file__).parent / "data" / "faq_context.txt"
+        chunks = load_faq_chunks(corpus_path)
+        return LocalFAQRetriever(chunks)
+
+    corpus_path = Path(__file__).parent / "data" / "faq_context.txt"
+    corpus_mtime = corpus_path.stat().st_mtime if corpus_path.exists() else 0.0
+    faq_retriever = get_local_faq_retriever(corpus_mtime)
+
+    if "faq_rag_debug" not in st.session_state:
+        st.session_state.faq_rag_debug = {"mode": "idle", "error": None}
     
     # ── Knowledge Base ──────────────────────────────────────────────
     FAQ_KNOWLEDGE = {
@@ -4295,6 +4315,21 @@ I can answer questions about:
             return FAQ_KNOWLEDGE[best_match]["answer"]
         else:
             return None
+
+    def is_low_quality_llm_answer(text: str) -> bool:
+        """Detect generic assistant replies that do not answer user intent."""
+        if not text:
+            return True
+
+        t = text.strip().lower()
+        generic_markers = [
+            "this chatbot is designed",
+            "it uses available information",
+            "if it doesn't know the answer",
+            "to get the best answer",
+            "please ask a specific question",
+        ]
+        return any(marker in t for marker in generic_markers)
     
     # ── Initialize Chat History ─────────────────────────────────────
     if "faq_messages" not in st.session_state:
@@ -4325,11 +4360,42 @@ Or just type your question below!"""}
         with st.chat_message("user"):
             st.markdown(user_input)
         
-        # Find answer
+        # Retrieve grounding context from local corpus.
+        retrieved = faq_retriever.retrieve(user_input, top_k=3, min_score=0.08)
+
+        # Keep existing curated FAQ logic as fallback.
         answer = find_best_answer(user_input)
-        
-        if answer:
+        rag_result = generate_rag_answer_with_debug(user_input, retrieved)
+        llm_answer = rag_result.get("answer")
+        rag_debug = rag_result.get("debug", {})
+
+        if llm_answer and not is_low_quality_llm_answer(llm_answer):
+            response = llm_answer
+            st.session_state.faq_rag_debug = rag_debug
+        elif answer and retrieved:
             response = answer
+            rag_debug["mode"] = "keyword"
+            rag_debug["error"] = rag_debug.get("error") or "LLM response was generic; using curated FAQ answer"
+            st.session_state.faq_rag_debug = rag_debug
+        elif llm_answer:
+            response = (
+                "I found relevant project context, but the model response was too generic. "
+                "Please ask a more specific app question (for example: 'How does IFR affect deaths?')."
+            )
+            rag_debug["mode"] = "llm-generic-fallback"
+            rag_debug["error"] = "LLM response filtered as generic"
+            st.session_state.faq_rag_debug = rag_debug
+        elif answer:
+            response = answer
+            rag_debug["mode"] = "keyword"
+            st.session_state.faq_rag_debug = rag_debug
+        elif retrieved:
+            response = (
+                "I found relevant information in the project knowledge base. "
+                "Please ask a slightly more specific question so I can give a precise answer."
+            )
+            rag_debug["mode"] = "retrieval-only"
+            st.session_state.faq_rag_debug = rag_debug
         else:
             response = f"""🤔 I'm not sure about that specific question. 
 
@@ -4344,6 +4410,8 @@ Here are topics I can help with:
 - **Uncertainty** — "Why do forecasts show a range?"
 
 Try rephrasing your question, or ask one of these!"""
+            rag_debug["mode"] = "generic-fallback"
+            st.session_state.faq_rag_debug = rag_debug
         
         # Add assistant response
         st.session_state.faq_messages.append({"role": "assistant", "content": response})
@@ -4370,7 +4438,7 @@ Try rephrasing your question, or ask one of these!"""
     if st.sidebar.button("🗑️ Clear Chat"):
         st.session_state.faq_messages = [st.session_state.faq_messages[0]]
         st.rerun()
-    
+
     # ── Resources Section (collapsible) ─────────────────────────────
     st.markdown("---")
     
