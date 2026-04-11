@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import streamlit as st
+import streamlit.components.v1 as components
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
@@ -27,7 +28,7 @@ from pathlib import Path
 from rag_faq import (
     LocalFAQRetriever,
     load_faq_chunks,
-    generate_rag_answer_with_debug,
+    get_final_answer,
 )
 
 # Page configuration - MUST BE FIRST STREAMLIT COMMAND
@@ -35,7 +36,7 @@ st.set_page_config(
     page_title="Disease Outbreak Forecaster",
     page_icon="🏥",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Load GHSI Health Data
@@ -645,6 +646,52 @@ st.markdown("""
         color: #666;
         margin-top: 0.3rem;
     }
+    /* Dashboard Metric Cards CSS */
+    [data-testid="stMetric"] {
+        background-color: #ffffff;
+        border: 1px solid #e0e6ed;
+        border-radius: 8px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 135px !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 15px !important;
+        color: #1e293b !important;
+        font-weight: 700 !important;
+        margin-bottom: 8px !important;
+        white-space: normal !important;
+        line-height: 1.3 !important;
+        height: 60px !important;
+        display: flex;
+        align-items: flex-end;
+    }
+    [data-testid="stMetricLabel"] p {
+        font-size: 15px !important;
+        color: #1e293b !important;
+        font-weight: 700 !important;
+        white-space: normal !important;
+        margin: 0 !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+    }
+    [data-testid="stMetricValue"] div {
+        font-size: 24px !important;
+        white-space: normal !important;
+    }
     .real-world-example {
         background-color: #e8f5e9;
         border: 1px solid #4caf50;
@@ -953,30 +1000,818 @@ INTERVENTION_EFFECTS = {
     }
 }
 
-# Sidebar navigation
-st.sidebar.markdown("## 🏥 Outbreak Forecaster")
-st.sidebar.markdown("---")
+# Top navigation bar custom CSS formatting
+st.markdown("""
+<style>
+    /* Fully remove Streamlit sidebar and its controls */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarNav"],
+    [data-testid="stSidebarCollapsedControl"],
+    [aria-label="Open sidebar"],
+    [aria-label="Close sidebar"] {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+    }
 
-page = st.sidebar.radio(
-    "What would you like to do?",
-    ["📖 Learn How This Works", "🔮 Forecast an Outbreak", "⚖️ Compare Interventions", 
-     "✅ Validate Forecast", "🎮 Agent Simulation", "📊 Understanding Results", "❓ FAQ & Help"],
-    index=0
+    /* Remove Streamlit's native top header/toolbar gap */
+    header,
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="collapsedControl"] {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    [data-testid="stApp"] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Make navbar sit at the very top of the page area */
+    [data-testid="stAppViewContainer"] .main {
+        padding-top: 0 !important;
+        margin-top: -8px !important;
+    }
+
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-top: 92px !important;
+        margin-top: 0 !important;
+    }
+
+    /* Full-width professional dark navbar strip */
+    .st-key-top_nav_page [data-testid="stRadio"] {
+        width: 100vw;
+        position: fixed;
+        top: 0;
+        z-index: 9999;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        margin-top: 0;
+        margin-bottom: 24px;
+        padding: 4px 20px 4px 70px;
+        background: linear-gradient(180deg, #060f1c 0%, #081324 100%);
+        border-bottom: none;
+        box-shadow: 0 6px 16px rgba(2, 6, 23, 0.22);
+    }
+
+    .st-key-top_nav_page [data-testid="stRadio"] > label {
+        display: none !important;
+    }
+
+    .st-key-top_nav_page [data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 6px;
+        min-height: 58px;
+        padding: 0 20px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .st-key-top_nav_page [data-testid="stRadio"] div[role="radiogroup"]::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Tab item */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] {
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        border-radius: 8px !important;
+        border-bottom: 3px solid transparent;
+        box-shadow: none;
+        padding: 9px 12px 7px !important;
+        margin: 0;
+        transition: all 0.25s ease;
+        flex: 0 0 auto;
+    }
+
+    /* Remove bullet circles from BaseWeb radio */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] > div:first-child,
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] input,
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] svg {
+        display: none !important;
+    }
+
+    /* Tab text */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] [data-testid="stMarkdownContainer"] p {
+        font-family: 'Segoe UI', sans-serif !important;
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        color: #a7b3c8 !important;
+        margin: 0 !important;
+        white-space: nowrap;
+        transition: color 0.25s ease;
+    }
+
+    /* Hover */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.16) !important;
+        box-shadow: 0 6px 14px rgba(2, 6, 23, 0.26);
+    }
+
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:hover [data-testid="stMarkdownContainer"] p {
+        color: #e4574f !important;
+    }
+
+    /* Active */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"],
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:has(input[type="radio"]:checked) {
+        background: rgba(228, 87, 79, 0.16) !important;
+        border-color: rgba(228, 87, 79, 0.38) !important;
+        border-bottom-color: #e4574f !important;
+        box-shadow: 0 7px 16px rgba(228, 87, 79, 0.18);
+    }
+
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"] [data-testid="stMarkdownContainer"] p,
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:has(input[type="radio"]:checked) [data-testid="stMarkdownContainer"] p {
+        color: #e4574f !important;
+        font-weight: 700 !important;
+    }
+
+    /* Top-left navbar logo badge */
+    .top-left-brand {
+        position: fixed;
+        top: 9px;
+        left: 18px;
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        height: 48px;
+        min-width: 48px;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+
+    .top-left-brand-icon {
+        font-size: 34px;
+        line-height: 1;
+    }
+
+    @media (max-width: 980px) {
+        .top-left-brand {
+            height: 42px;
+            min-width: 42px;
+            padding: 0;
+            top: 10px;
+            left: 12px;
+        }
+    }
+
+    /* App heading below navbar */
+    .nav-logo-title {
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        color: #eb4f47;
+        font-size: 40px;
+        font-weight: 700;
+        text-align: center;
+        margin: 6px 0 24px 0;
+    }
+
+    /* Landing Page Styles */
+    .landing-hero {
+        background: linear-gradient(135deg, #0a1829 0%, #0f2440 50%, #1a2d52 100%);
+        padding: 80px 40px;
+        text-align: center;
+        border-radius: 16px;
+        margin: 32px 0;
+    }
+
+    .hero-title {
+        font-size: 48px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 16px;
+        letter-spacing: -1px;
+    }
+
+    .hero-subtitle {
+        font-size: 20px;
+        color: #b0b9cc;
+        margin-bottom: 32px;
+        font-weight: 400;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+        margin: 48px 0;
+    }
+
+    .feature-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 32px 24px;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+        border-color: rgba(228, 87, 79, 0.4);
+        box-shadow: 0 16px 40px rgba(228, 87, 79, 0.15);
+    }
+
+    .feature-icon {
+        font-size: 42px;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .feature-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 12px;
+    }
+
+    .feature-desc {
+        font-size: 14px;
+        color: #a0aac0;
+        line-height: 1.6;
+    }
+
+    .features-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: #ffffff;
+        text-align: center;
+        margin-bottom: 48px;
+        margin-top: 32px;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 800;
+        color: #e4574f;
+        margin-bottom: 8px;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #a0aac0;
+        font-weight: 600;
+    }
+
+    /* Floating AI Assistant Button */
+    .floating-button {
+        position: fixed !important;
+        bottom: 30px !important;
+        right: 30px !important;
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #e4574f 0%, #d43e38 100%) !important;
+        border: 2px solid rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 8px 24px rgba(228, 87, 79, 0.4) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        z-index: 99999 !important;
+        font-size: 28px !important;
+        user-select: none !important;
+        touch-action: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        line-height: 60px !important;
+        text-align: center !important;
+    }
+
+    .floating-button:hover {
+        transform: scale(1.1) !important;
+        box-shadow: 0 12px 32px rgba(228, 87, 79, 0.6) !important;
+    }
+
+    .floating-button:active {
+        transform: scale(0.95) !important;
+    }
+
+    .floating-button.collapsed {
+        width: 60px !important;
+        height: 60px !important;
+    }
+
+    .floating-button.expanded {
+        width: 70px !important;
+        height: 70px !important;
+        font-size: 32px !important;
+    }
+
+    /* Floating Chatbot Styles */
+    .floating-chatbot {
+        position: fixed !important;
+        bottom: 100px !important;
+        right: 30px !important;
+        width: 400px !important;
+        max-width: 90vw !important;
+        height: 600px !important;
+        border-radius: 16px !important;
+        background: linear-gradient(135deg, #0f1b2e 0%, #1a2d52 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+        display: none !important;
+        flex-direction: column !important;
+        z-index: 99998 !important;
+        animation: slideUp 0.3s ease-out !important;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .chatbot-header {
+        background: linear-gradient(135deg, #e4574f 0%, #d43e38 100%);
+        padding: 16px 20px;
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffffff;
+    }
+
+    .chatbot-header-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    .chatbot-close-btn {
+        background: none;
+        border: none;
+        color: #ffffff;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .chatbot-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .chatbot-message {
+        max-width: 85%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .chatbot-message-user {
+        background: #e4574f;
+        color: #ffffff;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .chatbot-message-bot {
+        background: rgba(255, 255, 255, 0.08);
+        color: #e0e7ff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom-left-radius: 4px;
+    }
+
+    .chatbot-input-area {
+        padding: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 0 0 16px 16px;
+    }
+
+    .chatbot-input {
+        display: flex;
+        gap: 8px;
+    }
+
+    .chatbot-input input {
+        flex: 1;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: #ffffff;
+        font-size: 14px;
+    }
+
+    .chatbot-input input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .chatbot-input button {
+        background: #e4574f;
+        border: none;
+        color: #ffffff;
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .chatbot-input button:hover {
+        background: #d43e38;
+        transform: translateY(-2px);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown(
+    '<div class="top-left-brand"><span class="top-left-brand-icon">🏥</span></div>',
+    unsafe_allow_html=True,
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📚 About This Tool")
-st.sidebar.info(
-    "This forecasting tool uses the same methods and parameters that health organizations "
-    "like the **CDC** and **WHO** use to predict disease outbreaks.\n\n"
-    "All default values come from peer-reviewed research and official health agency reports."
+# 1. Render the Full-Width Navbar Component FIRST
+nav_options = [
+    "🏠 Home",
+    "📖 Learn How This Works",
+    "🔮 Forecast an Outbreak",
+    "⚖️ Compare Interventions",
+    "✅ Validate Forecast",
+    "🎮 Agent Simulation",
+    "📊 Understanding Results",
+    "❓ FAQ & Help",
+]
+
+nav_display_labels = {
+    "🏠 Home": "Home",
+    "📖 Learn How This Works": "Learn Basics",
+    "🔮 Forecast an Outbreak": "Forecast an Outbreak",
+    "⚖️ Compare Interventions": "Compare Interventions",
+    "✅ Validate Forecast": "Validate Forecast",
+    "🎮 Agent Simulation": "Simulation",
+    "📊 Understanding Results": "Understanding Results",
+    "❓ FAQ & Help": "FAQ",
+}
+
+page = st.radio(
+    "Navigation",
+    nav_options,
+    index=0,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="top_nav_page",
+    format_func=lambda x: nav_display_labels.get(x, x),
 )
 
+# Initialize FAQ retriever for chatbot
+if "faq_retriever" not in st.session_state:
+    faq_chunks = load_faq_chunks("data/faq_context.txt")
+    st.session_state.faq_retriever = LocalFAQRetriever(faq_chunks)
+
+# Initialize chatbot messages in session state (for floating button usage)
+if "chatbot_messages" not in st.session_state:
+    st.session_state.chatbot_messages = [
+        {"role": "bot", "text": "Hi! 👋 Ask me anything about disease forecasting!"}
+    ]
+
+# ============================================================
+# FLOATING CHATBOT - FIXED WIDGET
+# ============================================================
+pending_chat_msg = st.query_params.get("chatmsg", "")
+if isinstance(pending_chat_msg, list):
+        pending_chat_msg = pending_chat_msg[0] if pending_chat_msg else ""
+
+pending_chat_msg = str(pending_chat_msg).strip()
+if pending_chat_msg:
+    st.session_state.chatbot_messages.append({"role": "user", "text": pending_chat_msg})
+
+    retriever = st.session_state.faq_retriever
+    final_result = get_final_answer(
+        query=pending_chat_msg,
+        retriever=retriever,
+        conversation_history=st.session_state.chatbot_messages,
+        model="llama-3.1-8b-instant",
+        top_k=5,
+        min_score=0.18,
+        timeout_sec=12,
+        max_attempts=5,
+    )
+    bot_answer = str(final_result.get("answer", "I could not generate a response right now."))
+
+    st.session_state.chatbot_messages.append({"role": "bot", "text": bot_answer})
+
+    # Remove only transient chat message param so refreshes do not duplicate messages.
+    try:
+        del st.query_params["chatmsg"]
+    except Exception:
+        pass
+
+    try:
+        del st.query_params["chatopen"]
+    except Exception:
+        pass
+
+messages_payload = json.dumps(st.session_state.chatbot_messages)
+
+chatbot_html = f"""
+<script>
+    (function () {{
+        const doc = window.parent.document;
+        const win = window.parent;
+        const messages = {messages_payload};
+
+        const oldRoot = doc.getElementById('df-chat-root');
+        if (oldRoot) oldRoot.remove();
+        const oldStyle = doc.getElementById('df-chat-style');
+        if (oldStyle) oldStyle.remove();
+
+        const style = doc.createElement('style');
+        style.id = 'df-chat-style';
+        style.textContent = `
+            #df-chat-fab {{
+                position: fixed;
+                right: 24px;
+                bottom: 24px;
+                width: 76px;
+                height: 76px;
+                border-radius: 50%;
+                border: none;
+                background: linear-gradient(135deg, #e4574f, #d43e38);
+                color: #fff;
+                font-size: 38px;
+                cursor: pointer;
+                box-shadow: 0 10px 28px rgba(228, 87, 79, 0.45);
+                z-index: 2147483646;
+            }}
+            #df-chat-fab:hover {{ transform: scale(1.06); }}
+
+            #df-chat-panel {{
+                position: fixed;
+                right: 24px;
+                bottom: 112px;
+                width: 420px;
+                height: min(520px, calc(100vh - 170px));
+                background: linear-gradient(135deg, #0f1b2e, #1a2d52);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 20px;
+                box-shadow: 0 18px 54px rgba(0, 0, 0, 0.58);
+                overflow: hidden;
+                z-index: 2147483645;
+                display: none;
+                flex-direction: column;
+            }}
+            #df-chat-panel.active {{
+                display: flex;
+                animation: dfSlideUp 220ms ease-out;
+            }}
+            @keyframes dfSlideUp {{
+                from {{ transform: translateY(18px); opacity: 0; }}
+                to {{ transform: translateY(0); opacity: 1; }}
+            }}
+
+            .df-chat-header {{
+                padding: 14px 16px;
+                background: linear-gradient(135deg, #e4574f, #d43e38);
+                color: #fff;
+                font-weight: 700;
+                font-size: 15px;
+            }}
+            #df-chat-messages {{
+                flex: 1 1 auto;
+                overflow-y: auto;
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }}
+            .df-msg {{
+                padding: 9px 12px;
+                border-radius: 12px;
+                font-size: 13px;
+                line-height: 1.35;
+                max-width: 86%;
+                word-break: break-word;
+            }}
+            .df-msg-user {{
+                align-self: flex-end;
+                background: #e4574f;
+                color: #fff;
+            }}
+            .df-msg-bot {{
+                align-self: flex-start;
+                background: rgba(255, 255, 255, 0.11);
+                color: #e6ecff;
+                border: 1px solid rgba(255, 255, 255, 0.09);
+            }}
+
+            .df-chat-input-row {{
+                display: flex;
+                gap: 8px;
+                padding: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.09);
+                background: rgba(15, 27, 46, 0.45);
+            }}
+            #df-chat-input {{
+                flex: 1;
+                height: 38px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                background: rgba(255, 255, 255, 0.08);
+                color: #fff;
+                font-size: 13px;
+                padding: 0 10px;
+                outline: none;
+            }}
+            #df-chat-send {{
+                border: none;
+                border-radius: 8px;
+                background: #e4574f;
+                color: #fff;
+                font-weight: 700;
+                font-size: 12px;
+                padding: 0 14px;
+                cursor: pointer;
+            }}
+        `;
+        doc.head.appendChild(style);
+
+        const root = doc.createElement('div');
+        root.id = 'df-chat-root';
+        root.innerHTML = `
+            <button id=\"df-chat-fab\" aria-label=\"Open AI Assistant\">🤖</button>
+            <div id=\"df-chat-panel\">
+                <div class=\"df-chat-header\">💬 AI Assistant</div>
+                <div id=\"df-chat-messages\"></div>
+                <div class=\"df-chat-input-row\">
+                    <input id=\"df-chat-input\" type=\"text\" placeholder=\"Ask...\" />
+                    <button id=\"df-chat-send\" type=\"button\">Send</button>
+                </div>
+            </div>
+        `;
+        doc.body.appendChild(root);
+
+        const fab = doc.getElementById('df-chat-fab');
+        const panel = doc.getElementById('df-chat-panel');
+        const box = doc.getElementById('df-chat-messages');
+        const input = doc.getElementById('df-chat-input');
+        const send = doc.getElementById('df-chat-send');
+
+        function renderMessages() {{
+            box.innerHTML = '';
+            messages.forEach((m) => {{
+                const d = doc.createElement('div');
+                d.className = 'df-msg ' + (m.role === 'user' ? 'df-msg-user' : 'df-msg-bot');
+                d.textContent = m.text;
+                box.appendChild(d);
+            }});
+            box.scrollTop = box.scrollHeight;
+        }}
+
+        function setOpen(isOpen) {{
+            panel.classList.toggle('active', isOpen);
+            win.localStorage.setItem('df_chat_open', isOpen ? '1' : '0');
+            if (isOpen) setTimeout(() => input.focus(), 80);
+        }}
+
+        function sendMessage() {{
+            const msg = input.value.trim();
+            if (!msg) return;
+            win.localStorage.setItem('df_chat_open', '1');
+            const parentUrl = new URL(win.location.href);
+            parentUrl.searchParams.set('chatmsg', msg);
+            parentUrl.searchParams.set('chatopen', '1');
+            const targetUrl = parentUrl.toString();
+
+            // Primary path
+            try {{
+                win.location.assign(targetUrl);
+                return;
+            }} catch (e) {{}}
+
+            // Fallback for stricter iframe navigation policies
+            try {{
+                const navAnchor = doc.createElement('a');
+                navAnchor.href = targetUrl;
+                navAnchor.target = '_top';
+                navAnchor.rel = 'noopener';
+                doc.body.appendChild(navAnchor);
+                navAnchor.click();
+                navAnchor.remove();
+                return;
+            }} catch (e) {{}}
+
+            // Last resort: direct href assignment
+            win.location.href = targetUrl;
+        }}
+
+        const url = new URL(win.location.href);
+        const shouldOpen = url.searchParams.get('chatopen') === '1' || win.localStorage.getItem('df_chat_open') === '1';
+        setOpen(shouldOpen);
+        renderMessages();
+
+        fab.addEventListener('click', () => setOpen(!panel.classList.contains('active')));
+        send.addEventListener('click', sendMessage);
+        input.addEventListener('keydown', (e) => {{
+            if (e.key === 'Enter') sendMessage();
+        }});
+    }})();
+</script>
+"""
+
+components.html(chatbot_html, height=0)
+
+# 2. Render the "Outbreak Forecaster" Heading BELOW the navbar as requested
+st.markdown('<div class="nav-logo-title">🏥 Outbreak Forecaster</div>', unsafe_allow_html=True)
+
+st.markdown("---")
+
+
+# ============================================================
+# HOME / LANDING PAGE
+# ============================================================
+if page == "🏠 Home":
+    st.markdown("""
+    <div class="landing-hero">
+        <h1 class="hero-title">Predict Disease Outbreaks with Confidence</h1>
+        <p class="hero-subtitle">AI-powered epidemiological forecasting and simulation platform</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<h2 class='features-title'>Core Features</h2>", unsafe_allow_html=True)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    features = [
+        {"icon": "📊", "title": "Forecast Outbreaks", "desc": "Predict disease spread with advanced SEIR models and Monte Carlo simulations"},
+        {"icon": "⚖️", "title": "Compare Interventions", "desc": "Evaluate impact of vaccines, testing, and quarantine strategies"},
+        {"icon": "✅", "title": "Validate Models", "desc": "Cross-validate forecasts with historical data and ensemble methods"},
+        {"icon": "🎮", "title": "Agent Simulation", "desc": "Run agent-based simulations with proximity-based transmission"},
+    ]
+    
+    columns = [col1, col2, col3, col4]
+    for col, feature in zip(columns, features):
+        with col:
+            st.markdown(f"""
+            <div class="feature-card">
+                <span class="feature-icon">{feature['icon']}</span>
+                <div class="feature-title">{feature['title']}</div>
+                <div class="feature-desc">{feature['desc']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    stats = [
+        {"number": "500+", "label": "Monte Carlo Runs"},
+        {"number": "7", "label": "Disease Models"},
+        {"number": "40+", "label": "Countries"},
+        {"number": "99%", "label": "Uptime"},
+    ]
+    for col, stat in zip([col1, col2, col3, col4], stats):
+        with col:
+            st.markdown(f"""
+            <div style="text-align:center; padding: 24px;">
+                <div class="stat-number">{stat['number']}</div>
+                <div class="stat-label">{stat['label']}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ============================================================
 # LEARN HOW THIS WORKS PAGE
 # ============================================================
-if page == "📖 Learn How This Works":
+elif page == "📖 Learn How This Works":
     st.markdown('<h1 class="main-header">🏥 Understanding Disease Outbreak Forecasting</h1>', 
                 unsafe_allow_html=True)
     st.markdown('<p class="sub-header">Learn how health organizations predict the spread of infectious diseases</p>', 
@@ -1567,181 +2402,192 @@ elif page == "🔮 Forecast an Outbreak":
                 help=f"Based on IFR of {ifr_display:.1f}% for {results['disease']}"
             )
         
-        # Main forecast chart
-        st.markdown("### 📈 Forecast: People Currently Infected Over Time")
+        # Create Tabs for cleaner layout
+        tab1, tab2, tab3 = st.tabs(["📈 Infection Curve", "📊 Daily Cases & Deaths", "💾 Data Details"])
         
-        fig = go.Figure()
-        
-        # Uncertainty band
-        fig.add_trace(go.Scatter(
-            x=np.concatenate([days, days[::-1]]),
-            y=np.concatenate([upper_I, lower_I[::-1]]),
-            fill='toself',
-            fillcolor='rgba(231, 76, 60, 0.2)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name=f'Possible range ({100 - results["ci_lower"]*2}% confidence)',
-            hoverinfo='skip'
-        ))
-        
-        # Mean line
-        fig.add_trace(go.Scatter(
-            x=days, y=mean_I,
-            mode='lines',
-            line=dict(color='#e74c3c', width=3),
-            name='Most likely outcome'
-        ))
-        
-        # Peak marker
-        fig.add_vline(x=peak_day, line_dash="dash", line_color="gray",
-                     annotation_text=f"Peak: Day {peak_day}")
-        
-        fig.update_layout(
-            xaxis_title="Days from Now",
-            yaxis_title="Number of People Infected",
-            height=450,
-            hovermode='x unified',
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Explanation of results
-        st.markdown(f"""
-        <div class="explain-box">
-        <strong>📖 What does this mean?</strong><br><br>
-        Based on the characteristics of <strong>{results['disease']}</strong> with a spread rate of 
-        <strong>{results['spread_rate']}</strong>:<br><br>
-        
-        • The outbreak will likely <strong>peak around day {peak_day}</strong> with approximately 
-        <strong>{peak_cases:,.0f} people infected</strong> at the same time.<br><br>
-        
-        • The shaded area shows the range of possible outcomes. We're <strong>{100 - results['ci_lower']*2}% confident</strong> 
-        the actual number will fall within this range.<br><br>
-        
-        • By the end of the outbreak, approximately <strong>{attack_rate:.1f}% of the population</strong> 
-        ({total_infected:,.0f} people) will have been infected.<br><br>
-        
-        <strong>💡 Note:</strong> This forecast assumes no new interventions are implemented. 
-        See "Compare Interventions" to explore how different measures could change these projections.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # New daily cases chart
-        st.markdown("### 📊 Forecast: New Cases Per Day")
-        
-        fig2 = go.Figure()
-        
-        # Apply detection rate for "reported" cases
-        reported_mean = mean_new * results['detection_rate'] / 100
-        reported_lower = lower_new * results['detection_rate'] / 100
-        reported_upper = upper_new * results['detection_rate'] / 100
-        
-        # True cases
-        fig2.add_trace(go.Scatter(
-            x=np.concatenate([days, days[::-1]]),
-            y=np.concatenate([upper_new, lower_new[::-1]]),
-            fill='toself', fillcolor='rgba(231, 76, 60, 0.15)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name='True cases (range)', hoverinfo='skip'
-        ))
-        fig2.add_trace(go.Scatter(
-            x=days, y=mean_new,
-            mode='lines', line=dict(color='#e74c3c', width=3),
-            name='True new cases'
-        ))
-        
-        # Reported cases
-        fig2.add_trace(go.Scatter(
-            x=days, y=reported_mean,
-            mode='lines', line=dict(color='#3498db', width=2, dash='dash'),
-            name=f'Reported cases ({results["detection_rate"]}% detected)'
-        ))
-        
-        fig2.update_layout(
-            xaxis_title="Days from Now",
-            yaxis_title="New Cases Per Day",
-            height=400,
-            hovermode='x unified',
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-        )
-        
-        st.plotly_chart(fig2, use_container_width=True)
-        
-        st.markdown(f"""
-        <div class="warning-box">
-        <strong>⚠️ Important: True Cases vs. Reported Cases</strong><br><br>
-        The <strong style="color: #e74c3c;">red line</strong> shows the estimated <strong>true</strong> number of new infections each day.<br>
-        The <strong style="color: #3498db;">blue dashed line</strong> shows what gets <strong>officially reported</strong> 
-        (only {results['detection_rate']}% of true cases).<br><br>
-        This is why official case counts always underestimate the true spread of disease.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Deaths chart
-        if total_deaths_forecast > 0:
-            st.markdown(f"### 💀 Forecast: Deaths Over Time (IFR = {ifr_display:.1f}%)")
+        with tab1:
+            # Main forecast chart
+            st.markdown("### Forecast: People Currently Infected Over Time")
             
-            fig3 = go.Figure()
+            fig = go.Figure()
             
-            fig3.add_trace(go.Scatter(
+            # Uncertainty band
+            fig.add_trace(go.Scatter(
                 x=np.concatenate([days, days[::-1]]),
-                y=np.concatenate([upper_new_deaths, lower_new_deaths[::-1]]),
-                fill='toself', fillcolor='rgba(100, 100, 100, 0.2)',
+                y=np.concatenate([upper_I, lower_I[::-1]]),
+                fill='toself',
+                fillcolor='rgba(231, 76, 60, 0.2)',
                 line=dict(color='rgba(255,255,255,0)'),
-                name='Deaths (range)', hoverinfo='skip'
-            ))
-            fig3.add_trace(go.Scatter(
-                x=days, y=mean_new_deaths,
-                mode='lines', line=dict(color='#7f8c8d', width=3),
-                name='Daily deaths'
-            ))
-            fig3.add_trace(go.Scatter(
-                x=days, y=mean_D,
-                mode='lines', line=dict(color='#2c3e50', width=2, dash='dash'),
-                name='Cumulative deaths'
+                name=f'Possible range ({100 - results["ci_lower"]*2}% confidence)',
+                hoverinfo='skip'
             ))
             
-            fig3.update_layout(
+            # Mean line
+            fig.add_trace(go.Scatter(
+                x=days, y=mean_I,
+                mode='lines',
+                line=dict(color='#e74c3c', width=3),
+                name='Most likely outcome'
+            ))
+            
+            # Peak marker
+            fig.add_vline(x=peak_day, line_dash="dash", line_color="gray",
+                         annotation_text=f"Peak: Day {peak_day}")
+            
+            fig.update_layout(
                 xaxis_title="Days from Now",
-                yaxis_title="Deaths",
-                height=400,
+                yaxis_title="Number of People Infected",
+                height=450,
                 hovermode='x unified',
-                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                margin=dict(l=0, r=0, t=10, b=0)
             )
             
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
             
+            # Explanation of results
             st.markdown(f"""
-            <div class="warning-box">
-            <strong>⚠️ Mortality Projection:</strong><br><br>
-            Based on the <strong>Infection Fatality Rate (IFR) of {ifr_display:.1f}%</strong> for {results['disease']}:<br>
-            • Estimated total deaths: <strong>{total_deaths_forecast:,.0f}</strong><br>
-            • Peak daily deaths: <strong>{np.max(mean_new_deaths):,.0f}</strong> (around day {np.argmax(mean_new_deaths)+1})<br><br>
-            <em>IFR varies by disease, age, and healthcare quality. These are population-average estimates.</em>
+            <div class="explain-box">
+            <strong>📖 What does this mean?</strong><br><br>
+            Based on the characteristics of <strong>{results['disease']}</strong> with a spread rate of 
+            <strong>{results['spread_rate']}</strong>:<br><br>
+            
+            • The outbreak will likely <strong>peak around day {peak_day}</strong> with approximately 
+            <strong>{peak_cases:,.0f} people infected</strong> at the same time.<br><br>
+            
+            • The shaded area shows the range of possible outcomes. We're <strong>{100 - results['ci_lower']*2}% confident</strong> 
+            the actual number will fall within this range.<br><br>
+            
+            • By the end of the outbreak, approximately <strong>{attack_rate:.1f}% of the population</strong> 
+            ({total_infected:,.0f} people) will have been infected.<br><br>
+            
+            <strong>💡 Note:</strong> This forecast assumes no new interventions are implemented. 
+            See "Compare Interventions" to explore how different measures could change these projections.
             </div>
             """, unsafe_allow_html=True)
         
-        # Download data
-        st.markdown("### 💾 Download Forecast Data")
+        with tab2:
+            # New daily cases chart
+            st.markdown("### Forecast: New Cases Per Day")
+            
+            fig2 = go.Figure()
+            
+            # Apply detection rate for "reported" cases
+            reported_mean = mean_new * results['detection_rate'] / 100
+            reported_lower = lower_new * results['detection_rate'] / 100
+            reported_upper = upper_new * results['detection_rate'] / 100
+            
+            # True cases
+            fig2.add_trace(go.Scatter(
+                x=np.concatenate([days, days[::-1]]),
+                y=np.concatenate([upper_new, lower_new[::-1]]),
+                fill='toself', fillcolor='rgba(231, 76, 60, 0.15)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='True cases (range)', hoverinfo='skip'
+            ))
+            fig2.add_trace(go.Scatter(
+                x=days, y=mean_new,
+                mode='lines', line=dict(color='#e74c3c', width=3),
+                name='True new cases'
+            ))
+            
+            # Reported cases
+            fig2.add_trace(go.Scatter(
+                x=days, y=reported_mean,
+                mode='lines', line=dict(color='#3498db', width=2, dash='dash'),
+                name=f'Reported cases ({results["detection_rate"]}% detected)'
+            ))
+            
+            fig2.update_layout(
+                xaxis_title="Days from Now",
+                yaxis_title="New Cases Per Day",
+                height=400,
+                hovermode='x unified',
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                margin=dict(l=0, r=0, t=10, b=0)
+            )
+            
+            st.plotly_chart(fig2, use_container_width=True)
+            
+            st.markdown(f"""
+            <div class="warning-box">
+            <strong>⚠️ Important: True Cases vs. Reported Cases</strong><br><br>
+            The <strong style="color: #e74c3c;">red line</strong> shows the estimated <strong>true</strong> number of new infections each day.<br>
+            The <strong style="color: #3498db;">blue dashed line</strong> shows what gets <strong>officially reported</strong> 
+            (only {results['detection_rate']}% of true cases).<br><br>
+            This is why official case counts always underestimate the true spread of disease.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Deaths chart
+            if total_deaths_forecast > 0:
+                st.markdown(f"### 💀 Forecast: Deaths Over Time (IFR = {ifr_display:.1f}%)")
+                
+                fig3 = go.Figure()
+                
+                fig3.add_trace(go.Scatter(
+                    x=np.concatenate([days, days[::-1]]),
+                    y=np.concatenate([upper_new_deaths, lower_new_deaths[::-1]]),
+                    fill='toself', fillcolor='rgba(100, 100, 100, 0.2)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name='Deaths (range)', hoverinfo='skip'
+                ))
+                fig3.add_trace(go.Scatter(
+                    x=days, y=mean_new_deaths,
+                    mode='lines', line=dict(color='#7f8c8d', width=3),
+                    name='Daily deaths'
+                ))
+                fig3.add_trace(go.Scatter(
+                    x=days, y=mean_D,
+                    mode='lines', line=dict(color='#2c3e50', width=2, dash='dash'),
+                    name='Cumulative deaths'
+                ))
+                
+                fig3.update_layout(
+                    xaxis_title="Days from Now",
+                    yaxis_title="Deaths",
+                    height=400,
+                    hovermode='x unified',
+                    legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                    margin=dict(l=0, r=0, t=10, b=0)
+                )
+                
+                st.plotly_chart(fig3, use_container_width=True)
+                
+                st.markdown(f"""
+                <div class="warning-box">
+                <strong>⚠️ Mortality Projection:</strong><br><br>
+                Based on the <strong>Infection Fatality Rate (IFR) of {ifr_display:.1f}%</strong> for {results['disease']}:<br>
+                • Estimated total deaths: <strong>{total_deaths_forecast:,.0f}</strong><br>
+                • Peak daily deaths: <strong>{np.max(mean_new_deaths):,.0f}</strong> (around day {np.argmax(mean_new_deaths)+1})<br><br>
+                <em>IFR varies by disease, age, and healthcare quality. These are population-average estimates.</em>
+                </div>
+                """, unsafe_allow_html=True)
         
-        df = pd.DataFrame({
-            'Day': days,
-            'Infected_Mean': mean_I,
-            'Infected_Lower': lower_I,
-            'Infected_Upper': upper_I,
-            'NewCases_Mean': mean_new,
-            'NewCases_Reported': reported_mean,
-            'NewDeaths_Mean': mean_new_deaths,
-            'CumulativeDeaths_Mean': mean_D
-        })
-        
-        st.download_button(
-            label="📥 Download as CSV",
-            data=df.to_csv(index=False),
-            file_name=f"outbreak_forecast_{results['disease'].replace(' ', '_')}.csv",
-            mime="text/csv"
-        )
-
+        with tab3:
+            # Download data
+            st.markdown("### Forecast Data Details")
+            
+            df = pd.DataFrame({
+                'Day': days,
+                'Infected_Mean': np.round(mean_I, 1),
+                'Infected_Lower': np.round(lower_I, 1),
+                'Infected_Upper': np.round(upper_I, 1),
+                'NewCases_Mean': np.round(mean_new, 1),
+                'NewCases_Reported': np.round(reported_mean, 1),
+                'NewDeaths_Mean': np.round(mean_new_deaths, 2),
+                'CumulativeDeaths_Mean': np.round(mean_D, 1)
+            })
+            
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            st.download_button(
+                label="📥 Download as CSV",
+                data=df.to_csv(index=False),
+                file_name=f"outbreak_forecast_{results['disease'].replace(' ', '_')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
 
 # ============================================================
 # COMPARE INTERVENTIONS PAGE
@@ -1749,13 +2595,13 @@ elif page == "🔮 Forecast an Outbreak":
 elif page == "⚖️ Compare Interventions":
     st.markdown("# ⚖️ How Different Interventions Affect Outbreaks")
     
-    st.markdown("""
-    <div class="explain-box">
-    <strong>What is this?</strong><br>
-    This tool lets you compare what happens with and without public health interventions. 
-    All intervention effectiveness values are based on real-world studies and CDC/WHO data.
-    </div>
-    """, unsafe_allow_html=True)
+    # st.markdown("""
+    # <div class="explain-box">
+    # <strong>What is this?</strong><br>
+    # This tool lets you compare what happens with and without public health interventions. 
+    # All intervention effectiveness values are based on real-world studies and CDC/WHO data.
+    # </div>
+    # """, unsafe_allow_html=True)
     
     # Check if forecast exists and use those parameters
     has_forecast = "forecast_results" in st.session_state
@@ -2046,70 +2892,76 @@ elif page == "⚖️ Compare Interventions":
                 help=f"SEIRD model: {baseline_deaths:,.0f} deaths without vs {intervention_deaths:,.0f} with intervention (IFR={r.get('ifr', 0.01)*100:.1f}%)"
             )
         
-        # Comparison chart
-        fig = go.Figure()
+        # Create Tabs for layout
+        tab1, tab2 = st.tabs(["📉 Intervention Impact Chart", "💡 Analysis"])
         
-        # Baseline
-        fig.add_trace(go.Scatter(
-            x=np.concatenate([days, days[::-1]]),
-            y=np.concatenate([base_upper, base_lower[::-1]]),
-            fill='toself', fillcolor='rgba(231, 76, 60, 0.2)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name='No intervention (range)', hoverinfo='skip'
-        ))
-        fig.add_trace(go.Scatter(
-            x=days, y=base_mean,
-            mode='lines', line=dict(color='#e74c3c', width=3),
-            name='Without intervention'
-        ))
-        
-        # Intervention
-        fig.add_trace(go.Scatter(
-            x=np.concatenate([days, days[::-1]]),
-            y=np.concatenate([int_upper, int_lower[::-1]]),
-            fill='toself', fillcolor='rgba(46, 204, 113, 0.2)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name='With intervention (range)', hoverinfo='skip'
-        ))
-        fig.add_trace(go.Scatter(
-            x=days, y=int_mean,
-            mode='lines', line=dict(color='#27ae60', width=3),
-            name=f'With {r["intervention_name"]}'
-        ))
-        
-        # Intervention start line
-        fig.add_vline(x=r['start_day'], line_dash="dash", line_color="blue",
-                     annotation_text="Intervention starts")
-        
-        fig.update_layout(
-            title=f"Impact of {r['intervention_name']} on {r['disease']} Outbreak",
-            xaxis_title="Days",
-            yaxis_title="Number of Active Cases",
-            height=500,
-            hovermode='x unified',
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Dynamic messaging based on intervention count
-        intervention_count = r.get('intervention_count', 1)
-        intervention_text = "these interventions are" if intervention_count > 1 else f"{r['intervention_name']} is"
-        
-        st.markdown(f"""
-        <div class="success-box">
-        <strong>📖 What This Means:</strong><br><br>
-        If <strong>{r['intervention_name']}</strong> {'are' if intervention_count > 1 else 'is'} implemented on <strong>day {r['start_day']}</strong> 
-        with <strong>{r['reduction']}% {'combined ' if intervention_count > 1 else ''}effectiveness</strong>:<br><br>
-        
-        • The peak of the outbreak would be reduced by approximately <strong>{peak_reduction:.0f}%</strong><br>
-        • Instead of <strong>{base_peak:,.0f}</strong> people infected at peak, there would be <strong>{int_peak:,.0f}</strong><br>
-        • The peak would occur <strong>{max(0, peak_delay)} days later</strong>, giving hospitals more time to prepare<br><br>
-        
-        <strong>💡 Key insight:</strong> Earlier intervention = better results. 
-        The same intervention{'s' if intervention_count > 1 else ''} implemented earlier would have an even bigger impact.
-        </div>
-        """, unsafe_allow_html=True)
+        with tab1:
+            # Comparison chart
+            fig = go.Figure()
+            
+            # Baseline
+            fig.add_trace(go.Scatter(
+                x=np.concatenate([days, days[::-1]]),
+                y=np.concatenate([base_upper, base_lower[::-1]]),
+                fill='toself', fillcolor='rgba(231, 76, 60, 0.2)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='No intervention (range)', hoverinfo='skip'
+            ))
+            fig.add_trace(go.Scatter(
+                x=days, y=base_mean,
+                mode='lines', line=dict(color='#e74c3c', width=3),
+                name='Without intervention'
+            ))
+            
+            # Intervention
+            fig.add_trace(go.Scatter(
+                x=np.concatenate([days, days[::-1]]),
+                y=np.concatenate([int_upper, int_lower[::-1]]),
+                fill='toself', fillcolor='rgba(46, 204, 113, 0.2)',
+                line=dict(color='rgba(255,255,255,0)'),
+                name='With intervention (range)', hoverinfo='skip'
+            ))
+            fig.add_trace(go.Scatter(
+                x=days, y=int_mean,
+                mode='lines', line=dict(color='#27ae60', width=3),
+                name=f'With {r["intervention_name"]}'
+            ))
+            
+            # Intervention start line
+            fig.add_vline(x=r['start_day'], line_dash="dash", line_color="blue",
+                         annotation_text="Intervention starts")
+            
+            fig.update_layout(
+                title=f"Impact of {r['intervention_name']} on {r['disease']} Outbreak",
+                xaxis_title="Days",
+                yaxis_title="Number of Active Cases",
+                height=500,
+                hovermode='x unified',
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01),
+                margin=dict(l=0, r=0, t=40, b=0)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with tab2:
+            # Dynamic messaging based on intervention count
+            intervention_count = r.get('intervention_count', 1)
+            intervention_text = "these interventions are" if intervention_count > 1 else f"{r['intervention_name']} is"
+            
+            st.markdown(f"""
+            <div class="success-box">
+            <strong>📖 What This Means:</strong><br><br>
+            If <strong>{r['intervention_name']}</strong> {'are' if intervention_count > 1 else 'is'} implemented on <strong>day {r['start_day']}</strong> 
+            with <strong>{r['reduction']}% {'combined ' if intervention_count > 1 else ''}effectiveness</strong>:<br><br>
+            
+            • The peak of the outbreak would be reduced by approximately <strong>{peak_reduction:.0f}%</strong><br>
+            • Instead of <strong>{base_peak:,.0f}</strong> people infected at peak, there would be <strong>{int_peak:,.0f}</strong><br>
+            • The peak would occur <strong>{max(0, peak_delay)} days later</strong>, giving hospitals more time to prepare<br><br>
+            
+            <strong>💡 Key insight:</strong> Earlier intervention = better results. 
+            The same intervention{'s' if intervention_count > 1 else ''} implemented earlier would have an even bigger impact.
+            </div>
+            """, unsafe_allow_html=True)
 
 
 # ============================================================
@@ -2117,15 +2969,6 @@ elif page == "⚖️ Compare Interventions":
 # ============================================================
 elif page == "✅ Validate Forecast":
     st.markdown("# ✅ Validate Your Forecast Against Real Data")
-    
-    st.markdown("""
-    <div class="explain-box">
-    <strong>What is this?</strong><br>
-    This page allows you to compare your forecast predictions with actual disease outbreak data 
-    from trusted sources like the CDC, WHO, and Our World in Data. This helps you understand 
-    how accurate your forecast model is and learn from real-world patterns.
-    </div>
-    """, unsafe_allow_html=True)
     
     # Check if user has created a forecast
     has_forecast = "forecast_results" in st.session_state
@@ -2158,8 +3001,7 @@ elif page == "✅ Validate Forecast":
             "Choose a trusted data source",
             ["Johns Hopkins CSSE (COVID-19)",
              "Ebola (2014-2016 West Africa)",
-             "Mpox/Monkeypox (2022 Global)",
-             "Upload Your Own Data"],
+             "Mpox/Monkeypox (2022 Global)"],
             help="These are official sources used by researchers and health organizations",
             key="validation_data_source"
         )
@@ -2560,10 +3402,7 @@ elif page == "✅ Validate Forecast":
                         <strong>Option 1: Use Bundled Data</strong><br>
                         Select "Ebola" or "Mpox" data sources - these don't require external downloads.<br><br>
                         
-                        <strong>Option 2: Upload Your Own Data</strong><br>
-                        Select "Upload Your Own Data" and provide a CSV file with 'date' and 'cases' columns.<br><br>
-                        
-                        <strong>Option 3: Try a Different Network</strong><br>
+                        <strong>Option 2: Try a Different Network</strong><br>
                         • Switch from WiFi to mobile hotspot (or vice versa)<br>
                         • If on corporate/school network, it may have a firewall blocking access<br>
                         • Try again in a few minutes - the issue might be temporary<br><br>
@@ -2573,9 +3412,9 @@ elif page == "✅ Validate Forecast":
                         </div>
                         """, unsafe_allow_html=True)
                     elif "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
-                        st.info("⏱️ **Network Timeout**: The connection is too slow. Try using Ebola/Mpox bundled data or uploading your own data instead.")
+                        st.info("⏱️ **Network Timeout**: The connection is too slow. Try using Ebola or Mpox bundled data instead.")
                     else:
-                        st.info("💡 Try using **Ebola** or **Mpox** (bundled data) or **Upload Your Own Data** for offline validation.")
+                        st.info("💡 Try using **Ebola** or **Mpox** (bundled data) for offline validation.")
     
     # Display fetched data and validation
     if "validation_data" in st.session_state and st.session_state.validation_data is not None:
@@ -3180,458 +4019,456 @@ elif page == "✅ Validate Forecast":
                 
                 y_axis_label = "New Cases per 100,000 Population"
             
-            st.markdown("### 📉 Forecast vs Reality Comparison")
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["📉 Comparison Chart", "📊 Accuracy Metrics", "💡 Analysis & Suggestions", "📖 What Results Mean", "💾 Data Download"])
             
-            # Comparison plot
-            fig_compare = go.Figure()
-            
-            # Use actual dates from real_data instead of day numbers
-            comparison_dates = real_data['date'].values[:n_compare]
-            
-            # Forecast uncertainty band
-            fig_compare.add_trace(go.Scatter(
-                x=np.concatenate([comparison_dates, comparison_dates[::-1]]),
-                y=np.concatenate([forecast_upper, forecast_lower[::-1]]),
-                fill='toself',
-                fillcolor='rgba(52, 152, 219, 0.2)',
-                line=dict(color='rgba(255,255,255,0)'),
-                name='Forecast Range (80%)',
-                hoverinfo='skip'
-            ))
-            
-            # Forecast mean
-            fig_compare.add_trace(go.Scatter(
-                x=comparison_dates, y=forecast_mean,
-                mode='lines',
-                line=dict(color='#3498db', width=3),
-                name='Forecast (Mean)'
-            ))
-            
-            # Actual data - same as shown in the first graph
-            fig_compare.add_trace(go.Scatter(
-                x=comparison_dates, y=actual_cases,
-                mode='lines+markers',
-                line=dict(color='#e74c3c', width=2),
-                marker=dict(size=4),
-                name='Actual Cases'
-            ))
-            
-            comparison_title = "Forecast vs Actual Cases"
-            if use_normalization:
-                comparison_title += " (Normalized per 100k Population)"
-            
-            fig_compare.update_layout(
-                title=comparison_title,
-                xaxis_title="Date",
-                yaxis_title=y_axis_label,
-                height=500,
-                hovermode='x unified',
-                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-            )
-            
-            st.plotly_chart(fig_compare, use_container_width=True)
-            
-            # Calculate validation metrics
-            st.markdown("### 📊 Forecast Accuracy Metrics")
-            
-            if use_normalization:
-                st.info("📊 **All metrics shown below are calculated on normalized data (per 100k population)**")
-            
-            # Clean data - remove NaN/Inf values for metrics calculation
-            actual_clean = np.nan_to_num(actual_cases, nan=0.0, posinf=0.0, neginf=0.0)
-            forecast_clean = np.nan_to_num(forecast_mean, nan=0.0, posinf=0.0, neginf=0.0)
-            lower_clean = np.nan_to_num(forecast_lower, nan=0.0, posinf=0.0, neginf=0.0)
-            upper_clean = np.nan_to_num(forecast_upper, nan=1e10, posinf=1e10, neginf=0.0)
-            
-            # Find valid indices (both actual and forecast > 0)
-            valid_mask = (actual_clean > 0) & (forecast_clean > 0)
-            
-            if np.sum(valid_mask) > 5:  # Need at least 5 valid points
-                actual_valid = actual_clean[valid_mask]
-                forecast_valid = forecast_clean[valid_mask]
+            with tab1:
+                st.markdown("### 📉 Forecast vs Reality Comparison")
                 
-                # Calculate metrics on valid data only
-                mae = np.mean(np.abs(actual_valid - forecast_valid))
-                rmse = np.sqrt(np.mean((actual_valid - forecast_valid) ** 2))
-                mape = np.mean(np.abs((actual_valid - forecast_valid) / (actual_valid + 1))) * 100
-                bias = np.mean(forecast_valid - actual_valid)
+                # Comparison plot
+                fig_compare = go.Figure()
                 
-                # Correlation with safety check
-                if np.std(actual_valid) > 0 and np.std(forecast_valid) > 0:
-                    correlation = np.corrcoef(actual_valid, forecast_valid)[0, 1]
-                    if np.isnan(correlation):
+                # Use actual dates from real_data instead of day numbers
+                comparison_dates = real_data['date'].values[:n_compare]
+                
+                # Forecast uncertainty band
+                fig_compare.add_trace(go.Scatter(
+                    x=np.concatenate([comparison_dates, comparison_dates[::-1]]),
+                    y=np.concatenate([forecast_upper, forecast_lower[::-1]]),
+                    fill='toself',
+                    fillcolor='rgba(52, 152, 219, 0.2)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name='Forecast Range (80%)',
+                    hoverinfo='skip'
+                ))
+                
+                # Forecast mean
+                fig_compare.add_trace(go.Scatter(
+                    x=comparison_dates, y=forecast_mean,
+                    mode='lines',
+                    line=dict(color='#3498db', width=3),
+                    name='Forecast (Mean)'
+                ))
+                
+                # Actual data - same as shown in the first graph
+                fig_compare.add_trace(go.Scatter(
+                    x=comparison_dates, y=actual_cases,
+                    mode='lines+markers',
+                    line=dict(color='#e74c3c', width=2),
+                    marker=dict(size=4),
+                    name='Actual Cases'
+                ))
+                
+                comparison_title = "Forecast vs Actual Cases"
+                if use_normalization:
+                    comparison_title += " (Normalized per 100k Population)"
+                
+                fig_compare.update_layout(
+                    title=comparison_title,
+                    xaxis_title="Date",
+                    yaxis_title=y_axis_label,
+                    height=500,
+                    hovermode='x unified',
+                    legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+                )
+                
+                st.plotly_chart(fig_compare, use_container_width=True)
+            
+            with tab2:
+                # Calculate validation metrics
+                st.markdown("### 📊 Forecast Accuracy Metrics")
+                if use_normalization:
+                    st.info("📊 **All metrics shown below are calculated on normalized data (per 100k population)**")
+            
+                # Clean data - remove NaN/Inf values for metrics calculation
+                actual_clean = np.nan_to_num(actual_cases, nan=0.0, posinf=0.0, neginf=0.0)
+                forecast_clean = np.nan_to_num(forecast_mean, nan=0.0, posinf=0.0, neginf=0.0)
+                lower_clean = np.nan_to_num(forecast_lower, nan=0.0, posinf=0.0, neginf=0.0)
+                upper_clean = np.nan_to_num(forecast_upper, nan=1e10, posinf=1e10, neginf=0.0)
+            
+                # Find valid indices (both actual and forecast > 0)
+                valid_mask = (actual_clean > 0) & (forecast_clean > 0)
+            
+                if np.sum(valid_mask) > 5:  # Need at least 5 valid points
+                    actual_valid = actual_clean[valid_mask]
+                    forecast_valid = forecast_clean[valid_mask]
+                
+                    # Calculate metrics on valid data only
+                    mae = np.mean(np.abs(actual_valid - forecast_valid))
+                    rmse = np.sqrt(np.mean((actual_valid - forecast_valid) ** 2))
+                    mape = np.mean(np.abs((actual_valid - forecast_valid) / (actual_valid + 1))) * 100
+                    bias = np.mean(forecast_valid - actual_valid)
+                
+                    # Correlation with safety check
+                    if np.std(actual_valid) > 0 and np.std(forecast_valid) > 0:
+                        correlation = np.corrcoef(actual_valid, forecast_valid)[0, 1]
+                        if np.isnan(correlation):
+                            correlation = 0.0
+                    else:
                         correlation = 0.0
                 else:
+                    # Fallback if not enough valid data
+                    mae = np.mean(np.abs(actual_clean - forecast_clean))
+                    rmse = np.sqrt(np.mean((actual_clean - forecast_clean) ** 2))
+                    mape = 0.0
+                    bias = np.mean(forecast_clean - actual_clean)
                     correlation = 0.0
-            else:
-                # Fallback if not enough valid data
-                mae = np.mean(np.abs(actual_clean - forecast_clean))
-                rmse = np.sqrt(np.mean((actual_clean - forecast_clean) ** 2))
-                mape = 0.0
-                bias = np.mean(forecast_clean - actual_clean)
-                correlation = 0.0
             
-            # Coverage - how often actual falls within forecast range (use all data)
-            coverage = np.mean((actual_clean >= lower_clean) & (actual_clean <= upper_clean)) * 100
+                # Coverage - how often actual falls within forecast range (use all data)
+                coverage = np.mean((actual_clean >= lower_clean) & (actual_clean <= upper_clean)) * 100
             
-            # Determine units for display
-            units = "cases per 100k" if use_normalization else "cases"
+                # Determine units for display
+                units = "cases per 100k" if use_normalization else "cases"
             
-            col1, col2, col3 = st.columns(3)
+                col1, col2, col3 = st.columns(3)
             
-            with col1:
-                st.metric(
-                    "Mean Absolute Error (MAE)",
-                    f"{mae:,.0f} {units}",
-                    help="Average difference between forecast and actual (lower is better)"
-                )
-                st.metric(
-                    "Root Mean Square Error (RMSE)",
-                    f"{rmse:,.0f} {units}",
-                    help="Penalizes large errors more heavily (lower is better)"
-                )
+                with col1:
+                    st.metric(
+                        "Mean Absolute Error (MAE)",
+                        f"{mae:,.0f} {units}",
+                        help="Average difference between forecast and actual (lower is better)"
+                    )
+                    st.metric(
+                        "Root Mean Square Error (RMSE)",
+                        f"{rmse:,.0f} {units}",
+                        help="Penalizes large errors more heavily (lower is better)"
+                    )
             
-            with col2:
-                st.metric(
-                    "Coverage (80% interval)",
-                    f"{coverage:.1f}%",
-                    delta=f"{coverage - 80:.1f}% from ideal",
-                    delta_color="off" if abs(coverage - 80) < 10 else "inverse",
-                    help="Percentage of actual values within forecast range (should be ~80%)"
-                )
-                st.metric(
-                    "Correlation",
-                    f"{correlation:.2f}",
-                    help="How well forecast tracks actual pattern (1.0 = perfect)"
-                )
+                with col2:
+                    st.metric(
+                        "Coverage (80% interval)",
+                        f"{coverage:.1f}%",
+                        delta=f"{coverage - 80:.1f}% from ideal",
+                        delta_color="off" if abs(coverage - 80) < 10 else "inverse",
+                        help="Percentage of actual values within forecast range (should be ~80%)"
+                    )
+                    st.metric(
+                        "Correlation",
+                        f"{correlation:.2f}",
+                        help="How well forecast tracks actual pattern (1.0 = perfect)"
+                    )
             
-            with col3:
-                st.metric(
-                    "Forecast Bias",
-                    f"{bias:+,.0f} {units}",
-                    help="Positive = over-predicting, Negative = under-predicting"
-                )
-                st.metric(
-                    "Mean Absolute % Error",
-                    f"{mape:.1f}%",
-                    help="Average percentage error (lower is better)"
-                )
+                with col3:
+                    st.metric(
+                        "Forecast Bias",
+                        f"{bias:+,.0f} {units}",
+                        help="Positive = over-predicting, Negative = under-predicting"
+                    )
+                    st.metric(
+                        "Mean Absolute % Error",
+                        f"{mape:.1f}%",
+                        help="Average percentage error (lower is better)"
+                    )
             
-            # Interpretation
-            if coverage >= 70 and coverage <= 90:
-                coverage_status = "✅ Well-calibrated"
-                coverage_color = "success"
-            elif coverage < 70:
-                coverage_status = "⚠️ Under-confident (too narrow)"
-                coverage_color = "warning"
-            else:
-                coverage_status = "⚠️ Over-confident (too wide)"
-                coverage_color = "warning"
-            
-            if correlation > 0.7:
-                pattern_status = "✅ Captured pattern well"
-            elif correlation > 0.4:
-                pattern_status = "⚠️ Partially captured pattern"
-            else:
-                pattern_status = "❌ Missed the pattern"
-            
-            st.markdown(f"""
-            <div class="explain-box">
-            <strong>📖 What These Results Mean:</strong><br><br>
-            
-            <strong>Coverage: {coverage_status}</strong><br>
-            Your 80% prediction interval contained {coverage:.1f}% of actual values. 
-            Ideally this should be around 80% - if it's much lower, your forecast was too confident; 
-            if much higher, it was too uncertain.<br><br>
-            
-            <strong>Pattern: {pattern_status}</strong><br>
-            Correlation of {correlation:.2f} means your forecast 
-            {"accurately tracked the ups and downs of the outbreak" if correlation > 0.7 else "partially captured the outbreak dynamics" if correlation > 0.4 else "didn't capture the outbreak pattern well"}.<br><br>
-            
-            <strong>Bias: {'Over-predicting' if bias > 0 else 'Under-predicting'} by {abs(bias):,.0f} {units}/day on average</strong><br>
-            {"Your forecast tends to predict more cases than actually occurred." if bias > 0 else "Your forecast tends to predict fewer cases than actually occurred."}
-            {f"<br><br><strong>Note:</strong> Metrics are calculated on normalized data (per 100k population) for fair comparison between different population sizes." if use_normalization else ""}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # ============================================================
-            # FORECAST QUALITY SCORE & ACTIONABLE IMPROVEMENTS
-            # ============================================================
-            st.markdown("### 🎯 Forecast Quality Score")
-            
-            # Ensure all metrics are valid numbers (not NaN)
-            mae = 0.0 if np.isnan(mae) else mae
-            rmse = 0.0 if np.isnan(rmse) else rmse
-            mape = 0.0 if np.isnan(mape) else mape
-            bias = 0.0 if np.isnan(bias) else bias
-            correlation = 0.0 if np.isnan(correlation) else correlation
-            
-            # Calculate composite quality score (0-100)
-            coverage_score = max(0, 100 - abs(coverage - 80) * 2)  # Penalize deviation from 80%
-            correlation_score = max(0, min(100, correlation * 100)) if correlation > 0 else 0
-            actual_mean = np.mean(actual_clean[actual_clean > 0]) if np.any(actual_clean > 0) else 1
-            bias_score = max(0, 100 - min(100, abs(bias) / (actual_mean + 1) * 100))
-            mape_score = max(0, 100 - min(100, mape))
-            
-            overall_score = (coverage_score * 0.30 + correlation_score * 0.35 + 
-                           bias_score * 0.20 + mape_score * 0.15)
-            
-            # Determine quality level
-            if overall_score >= 80:
-                quality_emoji = "🌟"
-                quality_text = "Excellent"
-                quality_color = "#27ae60"
-            elif overall_score >= 60:
-                quality_emoji = "✅"
-                quality_text = "Good"
-                quality_color = "#2ecc71"
-            elif overall_score >= 40:
-                quality_emoji = "⚠️"
-                quality_text = "Fair"
-                quality_color = "#f39c12"
-            else:
-                quality_emoji = "❌"
-                quality_text = "Needs Improvement"
-                quality_color = "#e74c3c"
-            
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                st.metric("Overall Score", f"{overall_score:.0f}/100", quality_text)
-            with col2:
-                st.metric("Coverage Score", f"{coverage_score:.0f}", help="How well-calibrated uncertainty is")
-            with col3:
-                st.metric("Pattern Score", f"{correlation_score:.0f}", help="How well trend is captured")
-            with col4:
-                st.metric("Accuracy Score", f"{bias_score:.0f}", help="How close to actual values")
-            
-            st.markdown(f"""
-            <div style="background-color: {quality_color}20; border-left: 4px solid {quality_color}; padding: 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0;">
-            <strong>{quality_emoji} {quality_text} Forecast</strong><br>
-            Your forecast scored <strong>{overall_score:.0f}/100</strong>. 
-            {"Great job! Your model is well-calibrated and captures the outbreak dynamics." if overall_score >= 70 else
-             "Good foundation, but there's room for improvement. See suggestions below." if overall_score >= 50 else
-             "The forecast needs significant improvement. Follow the suggestions below to enhance accuracy."}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # ============================================================
-            # SMART IMPROVEMENT SUGGESTIONS
-            # ============================================================
-            st.markdown("### 💡 How to Improve Your Forecast")
-            
-            suggestions = []
-            
-            # Coverage-based suggestions
-            if coverage < 50:
-                suggestions.append({
-                    "priority": 1,
-                    "title": "🎯 Fix Narrow Uncertainty Bands",
-                    "problem": f"Coverage is only {coverage:.1f}% (should be ~80%)",
-                    "solution": """Your prediction intervals are too tight. Try:
-• **Use the 'Generate Fitted Forecast' above** with Auto-Fit mode
-• **Enable Time-Varying R₀** to capture interventions
-• The updated model uses wider parameter uncertainty automatically"""
-                })
-            elif coverage > 95:
-                suggestions.append({
-                    "priority": 2,
-                    "title": "📉 Tighten Uncertainty Bands",
-                    "problem": f"Coverage is {coverage:.1f}% (too wide)",
-                    "solution": "Your intervals are too conservative. Reduce parameter uncertainty or use MLE fitting."
-                })
-            
-            # Correlation-based suggestions
-            if correlation < 0.3:
-                suggestions.append({
-                    "priority": 1,
-                    "title": "📊 Fix Pattern Mismatch",
-                    "problem": f"Correlation is only {correlation:.2f}",
-                    "solution": """The forecast shape doesn't match reality. This usually means:
-• **Wrong outbreak phase** - Real data might be declining while model predicts growth
-• **Use Time-Varying R₀ mode** - This captures intervention effects and behavioral changes
-• **Check dates** - Ensure you're comparing the same time period
-• **Try shorter horizons** - 7-14 days instead of 60+ days for better accuracy"""
-                })
-            elif correlation < 0.6:
-                suggestions.append({
-                    "priority": 2,
-                    "title": "📈 Improve Pattern Capture",
-                    "problem": f"Correlation is moderate ({correlation:.2f})",
-                    "solution": "Try Time-Varying R₀ mode or adjust initial conditions to better match the data."
-                })
-            
-            # Bias-based suggestions
-            avg_cases = np.mean(actual_cases)
-            bias_pct = abs(bias) / (avg_cases + 1) * 100
-            
-            if bias_pct > 50:
-                if bias < 0:
-                    suggestions.append({
-                        "priority": 1,
-                        "title": "📈 Fix Under-Prediction",
-                        "problem": f"Forecast is {abs(bias):,.0f} {units}/day too low ({bias_pct:.0f}% bias)",
-                        "solution": f"""Your model predicts fewer cases than observed. Try:
-• **Increase R₀** - Use Auto-Fit mode to estimate from data (currently suggests R₀ based on growth)
-• **Increase Detection Rate** - If set too low, reported cases will be under-predicted
-• **Match Initial Cases** - Set to exactly {int(actual_cases[0]):,} (first day of real data)"""
-                    })
+
+                # Compute projected deaths from forecast
+                if "comparison_forecast" in st.session_state:
+                    val_disease = comp.get('disease', '')
                 else:
+                    val_disease = forecast.get('disease', '') if 'forecast' in dir() else st.session_state.get('forecast_results', {}).get('disease', '')
+                # Try to find the disease in profiles for IFR
+                val_ifr = 0.01  # default 1%
+                for dname, dprof in DISEASE_PROFILES.items():
+                    if dname.lower() in val_disease.lower() or val_disease.lower() in dname.lower():
+                        val_ifr = dprof.get('percent_fatal', 1.0) / 100.0
+                        break
+            
+                forecast_deaths_mean = forecast_mean * val_ifr
+                total_projected_deaths = np.sum(forecast_deaths_mean)
+                actual_total_cases = np.sum(actual_cases)
+            
+                if val_ifr > 0:
+                    st.markdown("### 💀 Projected Mortality Estimates")
+                    col_d1, col_d2, col_d3 = st.columns(3)
+                    with col_d1:
+                        st.metric(
+                            "Projected Deaths (from forecast)",
+                            f"{total_projected_deaths:,.0f}",
+                            help=f"Forecast cases × IFR ({val_ifr*100:.1f}%)"
+                        )
+                    with col_d2:
+                        actual_deaths_est = actual_total_cases * val_ifr
+                        st.metric(
+                            "Estimated Deaths (from real data)",
+                            f"{actual_deaths_est:,.0f}",
+                            help=f"Actual cases × IFR ({val_ifr*100:.1f}%)"
+                        )
+                    with col_d3:
+                        st.metric(
+                            "IFR Used",
+                            f"{val_ifr*100:.1f}%",
+                            help="Infection Fatality Rate from disease profile"
+                        )
+                    st.caption(f"⚠️ Death estimates are approximate, derived by applying the disease IFR ({val_ifr*100:.1f}%) to case counts.")
+            
+
+            with tab3:
+                # ============================================================
+                # SMART IMPROVEMENT SUGGESTIONS
+                # ============================================================
+                st.markdown("### 💡 Analysis & Suggestions")
+                suggestions = []
+            
+                # Coverage-based suggestions
+                if coverage < 50:
                     suggestions.append({
                         "priority": 1,
-                        "title": "📉 Fix Over-Prediction",
-                        "problem": f"Forecast is {abs(bias):,.0f} {units}/day too high ({bias_pct:.0f}% bias)",
-                        "solution": """Your model predicts more cases than observed. Try:
-• **Use Time-Varying R₀** - Reality had interventions (lockdowns, masks) reducing spread
-• **Lower R₀** - The effective R₀ was probably lower due to public health measures
-• **Increase Detection Rate** - If real data is "all detected cases", use 80-100%"""
+                        "title": "🎯 Fix Narrow Uncertainty Bands",
+                        "problem": f"Coverage is only {coverage:.1f}% (should be ~80%)",
+                        "solution": """Your prediction intervals are too tight. Try:
+    • **Use the 'Generate Fitted Forecast' above** with Auto-Fit mode
+    • **Enable Time-Varying R₀** to capture interventions
+    • The updated model uses wider parameter uncertainty automatically"""
+                    })
+                elif coverage > 95:
+                    suggestions.append({
+                        "priority": 2,
+                        "title": "📉 Tighten Uncertainty Bands",
+                        "problem": f"Coverage is {coverage:.1f}% (too wide)",
+                        "solution": "Your intervals are too conservative. Reduce parameter uncertainty or use MLE fitting."
                     })
             
-            # Show suggestions
-            if suggestions:
-                # Sort by priority
-                suggestions.sort(key=lambda x: x['priority'])
-                
-                for i, sugg in enumerate(suggestions):
-                    with st.expander(f"{'🔴' if sugg['priority'] == 1 else '🟡'} {sugg['title']}", expanded=(i == 0)):
-                        st.markdown(f"**Problem:** {sugg['problem']}")
-                        st.markdown(f"**Solution:**\n{sugg['solution']}")
-            else:
-                st.success("✅ **Your forecast looks great!** All metrics are within acceptable ranges.")
+                # Correlation-based suggestions
+                if correlation < 0.3:
+                    suggestions.append({
+                        "priority": 1,
+                        "title": "📊 Fix Pattern Mismatch",
+                        "problem": f"Correlation is only {correlation:.2f}",
+                        "solution": """The forecast shape doesn't match reality. This usually means:
+    • **Wrong outbreak phase** - Real data might be declining while model predicts growth
+    • **Use Time-Varying R₀ mode** - This captures intervention effects and behavioral changes
+    • **Check dates** - Ensure you're comparing the same time period
+    • **Try shorter horizons** - 7-14 days instead of 60+ days for better accuracy"""
+                    })
+                elif correlation < 0.6:
+                    suggestions.append({
+                        "priority": 2,
+                        "title": "📈 Improve Pattern Capture",
+                        "problem": f"Correlation is moderate ({correlation:.2f})",
+                        "solution": "Try Time-Varying R₀ mode or adjust initial conditions to better match the data."
+                    })
             
-            # Quick action buttons
-            st.markdown("### 🚀 Quick Actions")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🔄 Re-generate with Auto-Fit", use_container_width=True):
-                    st.info("👆 Scroll up to the 'Generate Quick Comparison Forecast' section and select 'Auto-Fit from Data (MLE)' mode")
-            with col2:
-                if st.button("📈 Try Time-Varying R₀", use_container_width=True):
-                    st.info("👆 Scroll up and select 'Time-Varying R₀ (captures interventions)' mode")
+                # Bias-based suggestions
+                avg_cases = np.mean(actual_cases)
+                bias_pct = abs(bias) / (avg_cases + 1) * 100
             
-            # Residual analysis
-            st.markdown("### 📈 Detailed Analysis")
+                if bias_pct > 50:
+                    if bias < 0:
+                        suggestions.append({
+                            "priority": 1,
+                            "title": "📈 Fix Under-Prediction",
+                            "problem": f"Forecast is {abs(bias):,.0f} {units}/day too low ({bias_pct:.0f}% bias)",
+                            "solution": f"""Your model predicts fewer cases than observed. Try:
+    • **Increase R₀** - Use Auto-Fit mode to estimate from data (currently suggests R₀ based on growth)
+    • **Increase Detection Rate** - If set too low, reported cases will be under-predicted
+    • **Match Initial Cases** - Set to exactly {int(actual_cases[0]):,} (first day of real data)"""
+                        })
+                    else:
+                        suggestions.append({
+                            "priority": 1,
+                            "title": "📉 Fix Over-Prediction",
+                            "problem": f"Forecast is {abs(bias):,.0f} {units}/day too high ({bias_pct:.0f}% bias)",
+                            "solution": """Your model predicts more cases than observed. Try:
+    • **Use Time-Varying R₀** - Reality had interventions (lockdowns, masks) reducing spread
+    • **Lower R₀** - The effective R₀ was probably lower due to public health measures
+    • **Increase Detection Rate** - If real data is "all detected cases", use 80-100%"""
+                        })
             
-            with st.expander("📊 Residual Analysis (Forecast Errors Over Time)"):
-                residuals = actual_cases - forecast_mean
+                # Show suggestions
+                if suggestions:
+                    # Sort by priority
+                    suggestions.sort(key=lambda x: x['priority'])
                 
-                fig_resid = make_subplots(rows=2, cols=1, 
-                                          subplot_titles=("Forecast Errors Over Time", "Error Distribution"))
+                    for i, sugg in enumerate(suggestions):
+                        with st.expander(f"{'🔴' if sugg['priority'] == 1 else '🟡'} {sugg['title']}", expanded=(i == 0)):
+                            st.markdown(f"**Problem:** {sugg['problem']}")
+                            st.markdown(f"**Solution:**\n{sugg['solution']}")
+                else:
+                    st.success("✅ **Your forecast looks great!** All metrics are within acceptable ranges.")
+            
+                # Residual analysis
+                st.markdown("### 📈 Detailed Analysis")
+            
+                with st.expander("📊 Residual Analysis (Forecast Errors Over Time)"):
+                    residuals = actual_cases - forecast_mean
                 
-                # Residuals over time - use dates instead of day numbers
-                fig_resid.add_trace(go.Scatter(
-                    x=comparison_dates, y=residuals,
-                    mode='lines+markers',
-                    line=dict(color='#9b59b6'),
-                    name='Residuals'
-                ), row=1, col=1)
-                fig_resid.add_hline(y=0, line_dash="dash", line_color="gray", row=1, col=1)
+                    fig_resid = make_subplots(rows=2, cols=1, 
+                                              subplot_titles=("Forecast Errors Over Time", "Error Distribution"))
                 
-                # Histogram
-                fig_resid.add_trace(go.Histogram(
-                    x=residuals,
-                    nbinsx=20,
-                    marker_color='#9b59b6',
-                    name='Error Distribution'
-                ), row=2, col=1)
+                    # Residuals over time - use dates instead of day numbers
+                    fig_resid.add_trace(go.Scatter(
+                        x=comparison_dates, y=residuals,
+                        mode='lines+markers',
+                        line=dict(color='#9b59b6'),
+                        name='Residuals'
+                    ), row=1, col=1)
+                    fig_resid.add_hline(y=0, line_dash="dash", line_color="gray", row=1, col=1)
                 
-                fig_resid.update_xaxes(title_text="Date", row=1, col=1)
-                fig_resid.update_xaxes(title_text="Residual Value", row=2, col=1)
-                fig_resid.update_yaxes(title_text="Error (Cases)", row=1, col=1)
-                fig_resid.update_yaxes(title_text="Frequency", row=2, col=1)
-                fig_resid.update_layout(height=500, showlegend=False)
-                st.plotly_chart(fig_resid, use_container_width=True)
+                    # Histogram
+                    fig_resid.add_trace(go.Histogram(
+                        x=residuals,
+                        nbinsx=20,
+                        marker_color='#9b59b6',
+                        name='Error Distribution'
+                    ), row=2, col=1)
                 
-                st.markdown("""
+                    fig_resid.update_xaxes(title_text="Date", row=1, col=1)
+                    fig_resid.update_xaxes(title_text="Residual Value", row=2, col=1)
+                    fig_resid.update_yaxes(title_text="Error (Cases)", row=1, col=1)
+                    fig_resid.update_yaxes(title_text="Frequency", row=2, col=1)
+                    fig_resid.update_layout(height=500, showlegend=False)
+                    st.plotly_chart(fig_resid, use_container_width=True)
+                
+                    st.markdown("""
+                    <div class="explain-box">
+                    <strong>Reading the residuals:</strong><br>
+                    • Residuals should be randomly scattered around zero<br>
+                    • Patterns (trends, cycles) suggest systematic forecast errors<br>
+                    • The histogram should be roughly bell-shaped and centered at zero
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+                with st.expander("📅 Weekly/Monthly Breakdown"):
+                    weekly_actual = []
+                    weekly_forecast = []
+                
+                    for i in range(0, n_compare, 7):
+                        end_i = min(i + 7, n_compare)
+                        weekly_actual.append(np.sum(actual_cases[i:end_i]))
+                        weekly_forecast.append(np.sum(forecast_mean[i:end_i]))
+                
+                    weekly_df = pd.DataFrame({
+                        'Week': range(1, len(weekly_actual) + 1),
+                        'Actual': weekly_actual,
+                        'Forecast': weekly_forecast,
+                        'Error': np.array(weekly_forecast) - np.array(weekly_actual),
+                        'Error %': (np.array(weekly_forecast) - np.array(weekly_actual)) / (np.array(weekly_actual) + 1) * 100
+                    })
+                
+                    st.dataframe(weekly_df.style.format({
+                        'Actual': '{:,.0f}',
+                        'Forecast': '{:,.0f}',
+                        'Error': '{:+,.0f}',
+                        'Error %': '{:+.1f}%'
+                    }))
+            
+
+            with tab4:
+                # Interpretation
+                if coverage >= 70 and coverage <= 90:
+                    coverage_status = "✅ Well-calibrated"
+                    coverage_color = "success"
+                elif coverage < 70:
+                    coverage_status = "⚠️ Under-confident (too narrow)"
+                    coverage_color = "warning"
+                else:
+                    coverage_status = "⚠️ Over-confident (too wide)"
+                    coverage_color = "warning"
+                
+                if correlation > 0.7:
+                    pattern_status = "✅ Captured pattern well"
+                elif correlation > 0.4:
+                    pattern_status = "⚠️ Partially captured pattern"
+                else:
+                    pattern_status = "❌ Missed the pattern"
+                
+                st.markdown(f"""
                 <div class="explain-box">
-                <strong>Reading the residuals:</strong><br>
-                • Residuals should be randomly scattered around zero<br>
-                • Patterns (trends, cycles) suggest systematic forecast errors<br>
-                • The histogram should be roughly bell-shaped and centered at zero
+                <strong>📖 What These Results Mean:</strong><br><br>
+                
+                <strong>Coverage: {coverage_status}</strong><br>
+                Your 80% prediction interval contained {coverage:.1f}% of actual values. 
+                Ideally this should be around 80% - if it's much lower, your forecast was too confident; 
+                if much higher, it was too uncertain.<br><br>
+                
+                <strong>Pattern: {pattern_status}</strong><br>
+                Correlation of {correlation:.2f} means your forecast 
+                {"accurately tracked the ups and downs of the outbreak" if correlation > 0.7 else "partially captured the outbreak dynamics" if correlation > 0.4 else "didn't capture the outbreak pattern well"}.<br><br>
+                
+                <strong>Bias: {'Over-predicting' if bias > 0 else 'Under-predicting'} by {abs(bias):,.0f} {units}/day on average</strong><br>
+                {"Your forecast tends to predict more cases than actually occurred." if bias > 0 else "Your forecast tends to predict fewer cases than actually occurred."}
+                {f"<br><br><strong>Note:</strong> Metrics are calculated on normalized data (per 100k population) for fair comparison between different population sizes." if use_normalization else ""}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # ============================================================
+                # FORECAST QUALITY SCORE & ACTIONABLE IMPROVEMENTS
+                # ============================================================
+                st.markdown("### 🎯 Forecast Quality Score")
+                
+                # Ensure all metrics are valid numbers (not NaN)
+                mae = 0.0 if np.isnan(mae) else mae
+                rmse = 0.0 if np.isnan(rmse) else rmse
+                mape = 0.0 if np.isnan(mape) else mape
+                bias = 0.0 if np.isnan(bias) else bias
+                correlation = 0.0 if np.isnan(correlation) else correlation
+                
+                # Calculate composite quality score (0-100)
+                coverage_score = max(0, 100 - abs(coverage - 80) * 2)  # Penalize deviation from 80%
+                correlation_score = max(0, min(100, correlation * 100)) if correlation > 0 else 0
+                actual_mean = np.mean(actual_clean[actual_clean > 0]) if np.any(actual_clean > 0) else 1
+                bias_score = max(0, 100 - min(100, abs(bias) / (actual_mean + 1) * 100))
+                mape_score = max(0, 100 - min(100, mape))
+                
+                overall_score = (coverage_score * 0.30 + correlation_score * 0.35 + 
+                               bias_score * 0.20 + mape_score * 0.15)
+                
+                # Determine quality level
+                if overall_score >= 80:
+                    quality_emoji = "🌟"
+                    quality_text = "Excellent"
+                    quality_color = "#27ae60"
+                elif overall_score >= 60:
+                    quality_emoji = "✅"
+                    quality_text = "Good"
+                    quality_color = "#2ecc71"
+                elif overall_score >= 40:
+                    quality_emoji = "⚠️"
+                    quality_text = "Fair"
+                    quality_color = "#f39c12"
+                else:
+                    quality_emoji = "❌"
+                    quality_text = "Needs Improvement"
+                    quality_color = "#e74c3c"
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Overall Score", f"{overall_score:.0f}/100", quality_text)
+                with col2:
+                    st.metric("Coverage Score", f"{coverage_score:.0f}", help="How well-calibrated uncertainty is")
+                with col3:
+                    st.metric("Pattern Score", f"{correlation_score:.0f}", help="How well trend is captured")
+                with col4:
+                    st.metric("Accuracy Score", f"{bias_score:.0f}", help="How close to actual values")
+                
+                st.markdown(f"""
+                <div style="background-color: {quality_color}20; border-left: 4px solid {quality_color}; padding: 1rem; margin: 1rem 0; border-radius: 0 8px 8px 0;">
+                <strong>{quality_emoji} {quality_text} Forecast</strong><br>
+                Your forecast scored <strong>{overall_score:.0f}/100</strong>. 
+                {"Great job! Your model is well-calibrated and captures the outbreak dynamics." if overall_score >= 70 else
+                 "Good foundation, but there's room for improvement. See suggestions below." if overall_score >= 50 else
+                 "The forecast needs significant improvement. Follow the suggestions below to enhance accuracy."}
                 </div>
                 """, unsafe_allow_html=True)
             
-            with st.expander("📅 Weekly/Monthly Breakdown"):
-                weekly_actual = []
-                weekly_forecast = []
+
+            with tab5:
+                # Download validation report
+                st.markdown("### 💾 Download Validation Report")
                 
-                for i in range(0, n_compare, 7):
-                    end_i = min(i + 7, n_compare)
-                    weekly_actual.append(np.sum(actual_cases[i:end_i]))
-                    weekly_forecast.append(np.sum(forecast_mean[i:end_i]))
-                
-                weekly_df = pd.DataFrame({
-                    'Week': range(1, len(weekly_actual) + 1),
-                    'Actual': weekly_actual,
-                    'Forecast': weekly_forecast,
-                    'Error': np.array(weekly_forecast) - np.array(weekly_actual),
-                    'Error %': (np.array(weekly_forecast) - np.array(weekly_actual)) / (np.array(weekly_actual) + 1) * 100
+                report_df = pd.DataFrame({
+                    'Date': comparison_dates,
+                    'Day': np.arange(1, n_compare + 1),
+                    'Actual_Cases': actual_cases,
+                    'Forecast_Mean': forecast_mean,
+                    'Forecast_Lower': forecast_lower,
+                    'Forecast_Upper': forecast_upper,
+                    'Error': actual_cases - forecast_mean,
+                    'Within_Range': (actual_cases >= forecast_lower) & (actual_cases <= forecast_upper)
                 })
                 
-                st.dataframe(weekly_df.style.format({
-                    'Actual': '{:,.0f}',
-                    'Forecast': '{:,.0f}',
-                    'Error': '{:+,.0f}',
-                    'Error %': '{:+.1f}%'
-                }))
-            
-            # Download validation report
-            st.markdown("### 💾 Download Validation Report")
-            
-            # Compute projected deaths from forecast
-            if "comparison_forecast" in st.session_state:
-                val_disease = comp.get('disease', '')
-            else:
-                val_disease = forecast.get('disease', '') if 'forecast' in dir() else st.session_state.get('forecast_results', {}).get('disease', '')
-            # Try to find the disease in profiles for IFR
-            val_ifr = 0.01  # default 1%
-            for dname, dprof in DISEASE_PROFILES.items():
-                if dname.lower() in val_disease.lower() or val_disease.lower() in dname.lower():
-                    val_ifr = dprof.get('percent_fatal', 1.0) / 100.0
-                    break
-            
-            forecast_deaths_mean = forecast_mean * val_ifr
-            total_projected_deaths = np.sum(forecast_deaths_mean)
-            actual_total_cases = np.sum(actual_cases)
-            
-            if val_ifr > 0:
-                st.markdown("### 💀 Projected Mortality Estimates")
-                col_d1, col_d2, col_d3 = st.columns(3)
-                with col_d1:
-                    st.metric(
-                        "Projected Deaths (from forecast)",
-                        f"{total_projected_deaths:,.0f}",
-                        help=f"Forecast cases × IFR ({val_ifr*100:.1f}%)"
-                    )
-                with col_d2:
-                    actual_deaths_est = actual_total_cases * val_ifr
-                    st.metric(
-                        "Estimated Deaths (from real data)",
-                        f"{actual_deaths_est:,.0f}",
-                        help=f"Actual cases × IFR ({val_ifr*100:.1f}%)"
-                    )
-                with col_d3:
-                    st.metric(
-                        "IFR Used",
-                        f"{val_ifr*100:.1f}%",
-                        help="Infection Fatality Rate from disease profile"
-                    )
-                st.caption(f"⚠️ Death estimates are approximate, derived by applying the disease IFR ({val_ifr*100:.1f}%) to case counts.")
-            
-            
-            report_df = pd.DataFrame({
-                'Date': comparison_dates,
-                'Day': np.arange(1, n_compare + 1),
-                'Actual_Cases': actual_cases,
-                'Forecast_Mean': forecast_mean,
-                'Forecast_Lower': forecast_lower,
-                'Forecast_Upper': forecast_upper,
-                'Error': actual_cases - forecast_mean,
-                'Within_Range': (actual_cases >= forecast_lower) & (actual_cases <= forecast_upper)
-            })
-            
-            st.download_button(
-                label="📥 Download Validation Data (CSV)",
-                data=report_df.to_csv(index=False),
+                st.download_button(
+                    label="📥 Download Validation Data (CSV)",
+                    data=report_df.to_csv(index=False),
                 file_name="forecast_validation_report.csv",
                 mime="text/csv"
             )
@@ -3899,13 +4736,13 @@ elif page == "🎮 Agent Simulation":
     with col2:
         if data_source_option == "forecast":
             sim_days = st.session_state.forecast_results.get('days', 30)
-            st.metric("Simulation Days", sim_days)
+            st.text_input("Simulation Days", value=f"{sim_days} (Fixed by forecast)", disabled=True)
         elif data_source_option == "comparison":
             sim_days = st.session_state.comparison_forecast.get('days', 30)
-            st.metric("Simulation Days", sim_days)
+            st.text_input("Simulation Days", value=f"{sim_days} (Fixed by comparison)", disabled=True)
         elif data_source_option == "validation":
             sim_days = len(st.session_state.validation_data)
-            st.metric("Simulation Days", sim_days)
+            st.text_input("Simulation Days", value=f"{sim_days} (Fixed by data)", disabled=True)
         else:
             sim_days = st.slider(
                 "Simulation Days",
@@ -4046,430 +4883,91 @@ elif page == "🎮 Agent Simulation":
 
 
 # ============================================================
-# FAQ & HELP PAGE - CHATBOT
+# FAQ & HELP PAGE
 # ============================================================
 elif page == "❓ FAQ & Help":
-    st.markdown("# 🤖 FAQ Chatbot")
-    st.markdown('<p class="sub-header">Ask me anything about disease forecasting!</p>', unsafe_allow_html=True)
-
-    @st.cache_resource
-    def get_local_faq_retriever(corpus_mtime: float):
-        corpus_path = Path(__file__).parent / "data" / "faq_context.txt"
-        chunks = load_faq_chunks(corpus_path)
-        return LocalFAQRetriever(chunks)
-
-    corpus_path = Path(__file__).parent / "data" / "faq_context.txt"
-    corpus_mtime = corpus_path.stat().st_mtime if corpus_path.exists() else 0.0
-    faq_retriever = get_local_faq_retriever(corpus_mtime)
-
-    if "faq_rag_debug" not in st.session_state:
-        st.session_state.faq_rag_debug = {"mode": "idle", "error": None}
+    st.markdown("# ❓ FAQ & Help")
+    st.markdown('<p class="sub-header">Frequently Asked Questions</p>', unsafe_allow_html=True)
     
-    # ── Knowledge Base ──────────────────────────────────────────────
-    FAQ_KNOWLEDGE = {
-        "parameters": {
-            "keywords": ["parameter", "disease", "data", "source", "where", "come from", "cdc", "who", "r0", "spread rate", "values", "default"],
-            "question": "Where do the disease parameters come from?",
-            "answer": """All default disease parameters are based on **peer-reviewed scientific literature** and official reports from health organizations:
-
-- **CDC** (Centers for Disease Control and Prevention)
-- **WHO** (World Health Organization)  
-- **ECDC** (European Centre for Disease Prevention and Control)
-
-**Examples:**
-- COVID-19 parameters → CDC COVID Data Tracker & WHO situation reports
-- Influenza parameters → CDC seasonal flu surveillance data
-- Measles parameters → WHO measles fact sheets
-- Ebola parameters → WHO Ebola Response Team publications"""
-        },
-        "uncertainty": {
-            "keywords": ["range", "uncertainty", "confidence", "band", "interval", "why range", "not exact", "shaded", "wide"],
-            "question": "Why do forecasts show a range instead of exact numbers?",
-            "answer": """Disease spread involves **many random factors**:
-
-- Who meets whom on any given day
-- Whether a particular encounter leads to transmission
-- Individual variation in how contagious people are
-- Testing and reporting variability
-
-By running **500 Monte Carlo simulations**, we capture this randomness and show you the **range of possible outcomes**, not just one guess.
-
-The shaded region represents the **95% confidence interval** — we expect the true value to fall within this range 95% of the time."""
-        },
-        "accuracy": {
-            "keywords": ["accurate", "accuracy", "reliable", "trust", "how good", "correct", "wrong", "error", "validation"],
-            "question": "How accurate are these forecasts?",
-            "answer": """No forecast is perfectly accurate — just like weather forecasts! However, these models use the **same mathematical frameworks** that professional epidemiologists use.
-
-**Accuracy depends on:**
-- Quality of input parameters
-- How far ahead you're forecasting (shorter = better)
-- Whether conditions change (new variants, interventions, behavior)
-
-**Our validation page** lets you test the model against real historical data and see metrics like MAE, RMSE, and MAPE.
-
-**Rule of thumb:** Short-term forecasts (1-2 weeks) are typically more reliable than longer-term ones."""
-        },
-        "r0": {
-            "keywords": ["r0", "r-naught", "r naught", "spread rate", "reproduction", "basic reproduction", "what is r", "meaning of r"],
-            "question": "What does R₀ (spread rate) mean?",
-            "answer": """The spread rate (**R₀** or "R-naught") answers one simple question:
-
-> *"If one person gets infected in a population where no one is immune, how many people will they spread it to?"*
-
-**Interpretation:**
-- **R₀ = 2** → each person infects 2 others → outbreak grows exponentially
-- **R₀ = 1** → each person infects 1 other → outbreak stays stable  
-- **R₀ < 1** → each person infects less than 1 → outbreak dies out
-
-**Examples:**
-- Measles: R₀ ≈ 12-18 (extremely contagious)
-- COVID-19 (original): R₀ ≈ 2.5-3.5
-- Seasonal flu: R₀ ≈ 1.2-1.4
-
-This is why interventions aim to **reduce R below 1**."""
-        },
-        "underreporting": {
-            "keywords": ["reported", "cases", "true", "actual", "real", "undercount", "underreport", "detection", "testing", "why lower"],
-            "question": "Why are reported cases always lower than true cases?",
-            "answer": """Several reasons for **underreporting**:
-
-1. **Mild/no symptoms** — Many people don't feel sick enough to get tested
-2. **Limited testing** — Not everyone who wants a test can get one
-3. **Reporting delays** — Lag between testing and official recording
-4. **Test sensitivity** — Tests don't catch 100% of true cases
-
-**Real-world example:**
-For COVID-19, CDC estimates the true number of infections was **2-4x higher** than reported cases.
-
-Our model includes a **detection rate slider** to account for this!"""
-        },
-        "interventions": {
-            "keywords": ["intervention", "mask", "lockdown", "vaccine", "social distance", "reduce", "prevention", "control", "how work"],
-            "question": "How do interventions work in the model?",
-            "answer": """Interventions reduce the **effective spread rate**:
-
-- **Masks** → Block respiratory droplets → Lower transmission
-- **Social distancing** → Fewer contact opportunities → Lower transmission  
-- **Lockdowns** → Drastically reduce contacts → ~70% reduction (based on Wuhan/Italy studies)
-- **Vaccination** → Makes people immune → Fewer susceptible people
-
-The **Compare Interventions** page lets you stack multiple interventions and see the combined effect on the epidemic curve.
-
-Intervention effectiveness percentages come from **systematic reviews and meta-analyses** of real-world data."""
-        },
-        "decision": {
-            "keywords": ["real", "decision", "use", "actual", "policy", "government", "official", "educational", "purpose"],
-            "question": "Can I use this for real decision-making?",
-            "answer": """This tool is for **educational purposes** and general understanding.
-
-For actual public health decisions, officials use:
-- More detailed data (age structure, geographic spread, hospital capacity)
-- **Multiple models** compared in ensemble forecasts
-- Expert judgment and local context
-- Real-time updating as new data arrives
-
-Think of this as a **simplified teaching version** that demonstrates the same concepts used by professionals.
-
-For real forecasts, see the **CDC COVID-19 Forecast Hub** which combines 50+ models."""
-        },
-        "seir": {
-            "keywords": ["seir", "exposed", "infectious", "infected", "contagious", "recovered", "susceptible", "compartment", "difference", "state"],
-            "question": "What's the difference between 'exposed' and 'infectious'?",
-            "answer": """The **SEIR model** tracks disease stages:
-
-1. **S (Susceptible)** — Can catch the disease
-2. **E (Exposed)** — Infected but virus is still multiplying. **Cannot spread it yet.**
-3. **I (Infectious)** — Virus has multiplied enough. **Can now spread to others.**
-4. **R (Recovered)** — Immune system has cleared infection. Cannot catch it again (for now).
-
-**Important:** For many diseases (including COVID-19), you can be **contagious BEFORE you have symptoms**! This is why asymptomatic spread is so dangerous.
-
-The **Agent Simulation** page visualizes these states as colored dots:
-🟢 Susceptible → 🟡 Exposed → 🔴 Infectious → 🔵 Recovered"""
-        },
-        "ensemble": {
-            "keywords": ["ensemble", "hybrid", "model", "algorithm", "renewal", "arima", "trend", "how forecast", "method", "technique"],
-            "question": "How does the hybrid ensemble forecasting work?",
-            "answer": """Our **Hybrid Ensemble** combines 3 different models:
-
-| Model | Weight | What it does |
-|-------|--------|--------------|
-| 🔬 **Renewal Equation** | 40% | Estimates time-varying R(t) from case data |
-| 📈 **Trend Extrapolation** | 35% | Statistical pattern matching (ARIMA-style) |
-| 🧬 **SEIR Model** | 25% | Classic epidemiological compartments |
-
-**Why combine them?**
-- No single model is best for all situations
-- Renewal captures R changes; Trend captures patterns; SEIR adds biological constraints
-- Weighted blending produces more robust forecasts than any single model
-
-We run **500 Monte Carlo simulations** with parameter uncertainty to generate confidence intervals."""
-        },
-        "agent": {
-            "keywords": ["agent", "simulation", "abm", "artificial life", "dots", "animation", "visualize", "watch", "spread"],
-            "question": "What is the Agent-Based Simulation?",
-            "answer": """The **Agent-Based Model (ABM)** is an **Artificial Life** visualization:
-
-- Each colored dot is a virtual "person" (agent)
-- Agents move randomly in a 2D space
-- When an infectious agent gets near a susceptible one → possible transmission
-- Agents progress through **S → E → I → R** states
-
-**Two modes:**
-1. **Curve-Guided** — Agents follow the forecast epidemic curve (proportional controller adjusts transmission daily)
-2. **Custom/Emergent** — Pure bottom-up simulation; epidemic curve emerges naturally from agent interactions
-
-**Colors:**
-🟢 Susceptible · 🟡 Exposed · 🔴 Infectious · 🔵 Recovered
-
-This makes abstract forecasts **tangible and intuitive**!"""
-        },
-        "data": {
-            "keywords": ["data", "source", "johns hopkins", "jhu", "ebola", "mpox", "covid", "upload", "csv", "where get"],
-            "question": "What data sources are available?",
-            "answer": """The app supports multiple data sources:
-
-| Source | Disease | Coverage |
-|--------|---------|----------|
-| **Johns Hopkins CSSE** | COVID-19 | Global, 2020-2023 |
-| **Bundled CSV** | Ebola | West Africa 2014-2016 |
-| **Bundled CSV** | Mpox/Monkeypox | Global 2022 |
-| **Upload** | Any disease | Your own CSV file |
-
-**For uploads**, your CSV needs at minimum:
-- A `date` column
-- A `new_cases` or `cases` column
-
-The validation page automatically handles different date formats and normalizes data for comparison."""
-        },
-        "deaths": {
-            "keywords": ["death", "deaths", "dead", "die", "dying", "fatal", "fatality", "ifr", "mortality", "seird", "killed", "percent_fatal"],
-            "question": "How does the app model deaths?",
-            "answer": """💀 **The app uses a SEIRD model** — adding a **D (Dead)** compartment to the classic SEIR framework.
-
-**How it works:**
-- When an infectious agent's recovery timer expires, the model rolls a random check against the **Infection Fatality Rate (IFR)**
-- With probability **IFR** → the individual dies (state D)
-- With probability **1 − IFR** → the individual recovers (state R)
-
-**IFR values by disease:**
-- COVID-19 Original: **1.0%**
-- COVID-19 Delta: **1.5%**
-- COVID-19 Omicron: **0.3%**
-- Seasonal Flu: **0.1%**
-- Pandemic Flu: **2.5%**
-- Measles: **0.2%**
-- Ebola: **50%**
-- Mpox: **0.1%**
-
-**Where you'll see deaths:**
-- 📈 **Forecast page** — death chart with daily & cumulative deaths
-- ✅ **Validation page** — projected mortality estimates
-- ⚖️ **Compare Interventions** — lives saved calculation
-- 🎮 **Agent Simulation** — dead agents shown as ⚫ black dots that stop moving"""
-        },
-        "hello": {
-            "keywords": ["hello", "hi", "hey", "greetings", "help", "start", "what can you"],
-            "question": "Hello!",
-            "answer": """👋 **Hello! I'm the FAQ Chatbot for the Disease Forecasting app.**
-
-I can answer questions about:
-- 🦠 **Disease parameters** (R₀, incubation, infectious period)
-- 📊 **Forecasting methods** (SEIR, ensemble, uncertainty)
-- 🎯 **Validation & accuracy** (metrics, confidence intervals)
-- 💉 **Interventions** (vaccines, masks, lockdowns)
-- 🎮 **Agent simulation** (Artificial Life visualization)
-- 📁 **Data sources** (Johns Hopkins, Ebola, Mpox)
-- 💀 **Deaths & mortality** (SEIRD model, IFR)
-
-**Try asking:**
-- "What is R₀?"
-- "How accurate are the forecasts?"
-- "How does the ensemble work?"
-- "What do the colors mean in the simulation?"
-- "How does the app model deaths?" """
-        }
-    }
+    # FAQ Section
+    with st.expander("🔹 Where do the disease parameters come from?", expanded=False):
+        st.markdown("""
+        All default disease parameters are based on **peer-reviewed scientific literature** and official reports from health organizations:
+        
+        - **CDC** (Centers for Disease Control and Prevention)
+        - **WHO** (World Health Organization)  
+        - **ECDC** (European Centre for Disease Prevention and Control)
+        
+        **Examples:**
+        - COVID-19 parameters → CDC COVID Data Tracker & WHO situation reports
+        - Influenza parameters → CDC seasonal flu surveillance data
+        - Measles parameters → WHO measles fact sheets
+        """)
     
-    # ── Chatbot Matching Function ───────────────────────────────────
-    def find_best_answer(user_query):
-        """Find the best matching FAQ answer using keyword matching."""
-        query_lower = user_query.lower()
+    with st.expander("🔹 Why do forecasts show a range instead of exact numbers?", expanded=False):
+        st.markdown("""
+        Disease spread involves **many random factors**:
         
-        best_match = None
-        best_score = 0
+        - Who meets whom on any given day
+        - Whether a particular encounter leads to transmission
+        - Individual variation in how contagious people are
+        - Testing and reporting variability
         
-        for topic, data in FAQ_KNOWLEDGE.items():
-            score = 0
-            for keyword in data["keywords"]:
-                if keyword in query_lower:
-                    # Longer keywords get higher scores
-                    score += len(keyword.split())
-            
-            if score > best_score:
-                best_score = score
-                best_match = topic
+        By running **500 Monte Carlo simulations**, we capture this randomness and show you the **range of possible outcomes**, not just one guess.
         
-        if best_match and best_score >= 1:
-            return FAQ_KNOWLEDGE[best_match]["answer"]
-        else:
-            return None
-
-    def is_low_quality_llm_answer(text: str) -> bool:
-        """Detect generic assistant replies that do not answer user intent."""
-        if not text:
-            return True
-
-        t = text.strip().lower()
-        generic_markers = [
-            "this chatbot is designed",
-            "it uses available information",
-            "if it doesn't know the answer",
-            "to get the best answer",
-            "please ask a specific question",
-        ]
-        return any(marker in t for marker in generic_markers)
+        The shaded region represents the **95% confidence interval** — we expect the true value to fall within this range 95% of the time.
+        """)
     
-    # ── Initialize Chat History ─────────────────────────────────────
-    if "faq_messages" not in st.session_state:
-        st.session_state.faq_messages = [
-            {"role": "assistant", "content": """👋 **Welcome to the FAQ Chatbot!**
-
-I can answer questions about disease forecasting, the SEIR model, interventions, data sources, and more.
-
-**Try asking me:**
-- "What is R₀?"
-- "How does the ensemble forecasting work?"
-- "Why do forecasts show a range?"
-- "What data sources are available?"
-
-Or just type your question below!"""}
-        ]
-    
-    # ── Display Chat History ────────────────────────────────────────
-    for message in st.session_state.faq_messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # ── Chat Input ──────────────────────────────────────────────────
-    if user_input := st.chat_input("Ask me anything about disease forecasting..."):
-        # Add user message to history
-        st.session_state.faq_messages.append({"role": "user", "content": user_input})
+    with st.expander("🔹 How accurate are these forecasts?", expanded=False):
+        st.markdown("""
+        No forecast is perfectly accurate — just like weather forecasts! However, these models use the **same mathematical frameworks** that professional epidemiologists use.
         
-        with st.chat_message("user"):
-            st.markdown(user_input)
+        **Accuracy depends on:**
+        - Quality of input parameters
+        - How far ahead you're forecasting (shorter = better)
+        - Whether conditions change (new variants, interventions, behavior)
         
-        # Retrieve grounding context from local corpus.
-        retrieved = faq_retriever.retrieve(user_input, top_k=3, min_score=0.08)
-
-        # Keep existing curated FAQ logic as fallback.
-        answer = find_best_answer(user_input)
-        rag_result = generate_rag_answer_with_debug(user_input, retrieved)
-        llm_answer = rag_result.get("answer")
-        rag_debug = rag_result.get("debug", {})
-
-        if llm_answer and not is_low_quality_llm_answer(llm_answer):
-            response = llm_answer
-            st.session_state.faq_rag_debug = rag_debug
-        elif answer and retrieved:
-            response = answer
-            rag_debug["mode"] = "keyword"
-            rag_debug["error"] = rag_debug.get("error") or "LLM response was generic; using curated FAQ answer"
-            st.session_state.faq_rag_debug = rag_debug
-        elif llm_answer:
-            response = (
-                "I found relevant project context, but the model response was too generic. "
-                "Please ask a more specific app question (for example: 'How does IFR affect deaths?')."
-            )
-            rag_debug["mode"] = "llm-generic-fallback"
-            rag_debug["error"] = "LLM response filtered as generic"
-            st.session_state.faq_rag_debug = rag_debug
-        elif answer:
-            response = answer
-            rag_debug["mode"] = "keyword"
-            st.session_state.faq_rag_debug = rag_debug
-        elif retrieved:
-            response = (
-                "I found relevant information in the project knowledge base. "
-                "Please ask a slightly more specific question so I can give a precise answer."
-            )
-            rag_debug["mode"] = "retrieval-only"
-            st.session_state.faq_rag_debug = rag_debug
-        else:
-            response = f"""🤔 I'm not sure about that specific question. 
-
-Here are topics I can help with:
-- **R₀ / spread rate** — "What is R₀?"
-- **SEIR model** — "What are the disease states?"
-- **Forecasting accuracy** — "How accurate are forecasts?"
-- **Interventions** — "How do vaccines work in the model?"
-- **Ensemble method** — "How does hybrid forecasting work?"
-- **Agent simulation** — "What is the agent-based model?"
-- **Data sources** — "What data is available?"
-- **Uncertainty** — "Why do forecasts show a range?"
-
-Try rephrasing your question, or ask one of these!"""
-            rag_debug["mode"] = "generic-fallback"
-            st.session_state.faq_rag_debug = rag_debug
-        
-        # Add assistant response
-        st.session_state.faq_messages.append({"role": "assistant", "content": response})
-        
-        with st.chat_message("assistant"):
-            st.markdown(response)
+        **Our validation page** lets you test the model against real historical data and see metrics like MAE, RMSE, and MAPE.
+        """)
     
-    # ── Sidebar Quick Topics ────────────────────────────────────────
-    st.sidebar.markdown("### 💡 Quick Topics")
-    quick_topics = [
-        "What is R₀?",
-        "How accurate are forecasts?",
-        "How does ensemble work?",
-        "What is SEIR?",
-        "What data sources exist?",
-    ]
-    for topic in quick_topics:
-        if st.sidebar.button(topic, key=f"quick_{topic}"):
-            st.session_state.faq_messages.append({"role": "user", "content": topic})
-            answer = find_best_answer(topic)
-            st.session_state.faq_messages.append({"role": "assistant", "content": answer})
-            st.rerun()
+    with st.expander("🔹 What does R₀ (spread rate) mean?", expanded=False):
+        st.markdown("""
+        The **R₀** (pronounced "R-naught") represents the average number of people one infected person will transmit the disease to in a fully susceptible population.
+        
+        - **R₀ = 2** means 1 person infects 2 others on average
+        - **R₀ = 0.5** means disease dies out (not enough transmission)
+        - **Higher R₀ = Faster spread = Worse epidemic**
+        """)
     
-    if st.sidebar.button("🗑️ Clear Chat"):
-        st.session_state.faq_messages = [st.session_state.faq_messages[0]]
-        st.rerun()
-
-    # ── Resources Section (collapsible) ─────────────────────────────
+    with st.expander("🔹 What interventions does the model support?", expanded=False):
+        st.markdown("""
+        The platform supports modeling common public health interventions:
+        
+        - **Vaccination campaigns** — Reduces susceptible population
+        - **Social distancing** — Reduces contact rates
+        - **Quarantine** — Removes infected individuals
+        - **Treatment improvements** — Shortens infectious period
+        - **Custom interventions** — Define your own transmission changes
+        """)
+    
+    with st.expander("🔹 Can I export my results?", expanded=False):
+        st.markdown("""
+        Yes! After running a forecast:
+        
+        1. **Download data** — Export forecast as CSV
+        2. **Compare scenarios** — Save multiple runs for comparison
+        3. **Generate reports** — Create PDFs with charts and analysis
+        4. **API access** — Integrate results into your own systems
+        """)
+    
     st.markdown("---")
-    
-    with st.expander("📚 External Resources"):
-        st.markdown("""
-**Reliable sources for disease forecasting:**
-
-- **[CDC COVID-19 Forecasting](https://www.cdc.gov/coronavirus/2019-ncov/science/forecasting/forecasts-cases.html)** — Weekly forecasts from the CDC
-- **[WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news)** — Global outbreak reports
-- **[COVID-19 Forecast Hub](https://covid19forecasthub.org/)** — Ensemble of 50+ forecasting models
-- **[Our World in Data](https://ourworldindata.org/explorers/coronavirus-data-explorer)** — Clear visualizations
-        """)
-    
-    with st.expander("🛠️ Technical Details"):
-        st.markdown("""
-**Model Types:**
-- Custom Forecast: Stochastic SEIR with Monte Carlo sampling
-- Validation Forecast: Hybrid Ensemble (Renewal 40% + Trend 35% + SEIR 25%)
-
-**Simulation:** 500 Monte Carlo runs with Poisson-distributed transitions
-
-**Parameters:**
-- β (beta) = R₀ / infectious_period
-- σ (sigma) = 1 / latent_period  
-- γ (gamma) = 1 / infectious_period
-
-**Agent Simulation:** SEIR ABM on 100×100 grid with proximity-based transmission
-        """)
+    st.markdown("### 📞 Still have questions?")
+    st.markdown("Click the **AI Assistant** button in the bottom-right to chat with our virtual assistant, or contact support@outbreakforecaster.com")
 
 
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Data Sources:** CDC, WHO, ECDC")
-st.sidebar.markdown("**Version:** 2.0 (User-Friendly)")
+# ============================================================
+# FOOTER
+# ============================================================
+st.markdown("---")
+st.markdown("<p style='text-align:center; color:#9aa3af; margin:0;'>🤖 Click the AI Assistant button for instant chat support</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#9aa3af; margin-top:4px;'>Data Sources: CDC, WHO, ECDC</p>", unsafe_allow_html=True)
