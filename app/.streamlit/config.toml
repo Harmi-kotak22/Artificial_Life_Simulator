@@ -1,0 +1,22 @@
+[theme]
+# Primary accent color (e.g. for buttons, active elements, slider handles)
+primaryColor = "#1E88E5"
+
+# Background color for the main content area
+backgroundColor = "#0B0E11"
+
+# Background color for the sidebar
+secondaryBackgroundColor = "#1A1F2E"
+
+# Text color for practically all text
+textColor = "#E5E7EB"
+
+# Font family for all text in the app, except code blocks
+# Accepted values: "sans serif", "serif", "monospace"
+font = "sans serif"
+
+[client]
+showErrorDetails = true
+
+[logger]
+level = "error"

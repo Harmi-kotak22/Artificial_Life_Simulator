@@ -39,6 +39,49 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# INJECT DARK THEME VIA CSS
+dark_theme_css = """
+<style>
+    /* Force dark background on main content */
+    .main {
+        background-color: #0B0E11 !important;
+        color: #E5E7EB !important;
+    }
+    
+    /* Force dark background on sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #1A1F2E !important;
+        color: #E5E7EB !important;
+    }
+    
+    /* Main page background */
+    .stApp {
+        background-color: #0B0E11 !important;
+        color: #E5E7EB !important;
+    }
+    
+    /* Text colors */
+    p, div, span, h1, h2, h3, h4, h5, h6 {
+        color: #E5E7EB !important;
+    }
+    
+    /* Input fields */
+    input, textarea, [data-testid="textInputRootElement"] {
+        background-color: #1A1F2E !important;
+        color: #E5E7EB !important;
+        border-color: #333 !important;
+    }
+    
+    /* Buttons */
+    button {
+        background-color: #1E88E5 !important;
+        color: white !important;
+    }
+</style>
+"""
+
+st.markdown(dark_theme_css, unsafe_allow_html=True)
+
 # Load GHSI Health Data
 @st.cache_data
 def load_ghsi_data():
