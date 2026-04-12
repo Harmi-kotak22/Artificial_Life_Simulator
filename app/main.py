@@ -77,6 +77,132 @@ dark_theme_css = """
         background-color: #1E88E5 !important;
         color: white !important;
     }
+    
+    /* Remove blue highlights from number input +/- buttons */
+    [data-testid="stNumberInput"] button {
+        background-color: transparent !important;
+        color: #E5E7EB !important;
+        border: 1px solid #444 !important;
+    }
+    
+    [data-testid="stNumberInput"] button:hover {
+        background-color: #1A1F2E !important;
+        border: 1px solid #555 !important;
+    }
+    
+    /* Fix multiselect tag container width */
+    [data-testid="stMultiSelect"] [role="combobox"] {
+        width: 100% !important;
+    }
+    
+    [data-baseweb="input"] {
+        width: 100% !important;
+    }
+    
+    /* Remove blue highlights from selected tags/chips */
+    [data-baseweb="tag"] {
+        background-color: #1A1F2E !important;
+        color: #E5E7EB !important;
+        border: 1px solid #444 !important;
+        padding: 8px 12px !important;
+        margin-right: 8px !important;
+        margin-bottom: 4px !important;
+        min-width: auto !important;
+        max-width: none !important;
+        min-height: 32px !important;
+        display: flex !important;
+        align-items: center !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        font-size: 14px !important;
+    }
+    
+    [data-baseweb="tag"] * {
+        color: #E5E7EB !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        white-space: normal !important;
+        overflow: visible !important;
+    }
+    
+    [data-baseweb="tag"] p, [data-baseweb="tag"] span, [data-baseweb="tag"] div {
+        color: #E5E7EB !important;
+        white-space: normal !important;
+    }
+    
+    [data-baseweb="tag"]:hover {
+        background-color: #222533 !important;
+    }
+    
+    /* Multiselect selected options */
+    [data-testid="multiSelectItemsContainer"] {
+        background: transparent !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    [data-baseweb="select"] [data-baseweb="tag"] {
+        background-color: #1A1F2E !important;
+        color: #E5E7EB !important;
+        border: 1px solid #444 !important;
+        padding: 8px 12px !important;
+        margin-right: 8px !important;
+        margin-bottom: 4px !important;
+        min-width: auto !important;
+        max-width: none !important;
+        overflow: visible !important;
+        white-space: normal !important;
+    }
+    
+    [data-baseweb="select"] [data-baseweb="tag"] * {
+        color: #E5E7EB !important;
+        overflow: visible !important;
+        white-space: normal !important;
+    }
+    
+    /* Remove blue highlights from tabs */
+    [data-testid="stTabs"] {
+        background: transparent !important;
+    }
+    
+    [data-baseweb="tab"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    [data-baseweb="tab"]:hover {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    [data-baseweb="tab"][aria-selected="true"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    [role="tablist"] {
+        background: transparent !important;
+    }
+    
+    [role="tab"] {
+        background: transparent !important;
+        border: none !important;
+    }
+    
+    [role="tab"]:hover {
+        background: transparent !important;
+    }
+    
+    [role="tab"][aria-selected="true"] {
+        background: transparent !important;
+    }
 </style>
 """
 
@@ -658,7 +784,10 @@ st.markdown("""
         margin: 1rem 0;
         border-radius: 0 8px 8px 0;
         font-size: 0.95rem;
-        color: #1a1a1a;
+        color: #1a1a1a !important;
+    }
+    .explain-box p, .explain-box div, .explain-box span {
+        color: #1a1a1a !important;
     }
     .warning-box {
         background-color: #fff3cd;
@@ -666,7 +795,10 @@ st.markdown("""
         padding: 1rem;
         margin: 1rem 0;
         border-radius: 0 8px 8px 0;
-        color: #1a1a1a;
+        color: #1a1a1a !important;
+    }
+    .warning-box p, .warning-box div, .warning-box span {
+        color: #1a1a1a !important;
     }
     .success-box {
         background-color: #d4edda;
@@ -674,7 +806,10 @@ st.markdown("""
         padding: 1rem;
         margin: 1rem 0;
         border-radius: 0 8px 8px 0;
-        color: #1a1a1a;
+        color: #1a1a1a !important;
+    }
+    .success-box p, .success-box div, .success-box span {
+        color: #1a1a1a !important;
     }
     .danger-box {
         background-color: #f8d7da;
@@ -682,7 +817,10 @@ st.markdown("""
         padding: 1rem;
         margin: 1rem 0;
         border-radius: 0 8px 8px 0;
-        color: #1a1a1a;
+        color: #1a1a1a !important;
+    }
+    .danger-box p, .danger-box div, .danger-box span {
+        color: #1a1a1a !important;
     }
     .metric-explain {
         font-size: 0.85rem;
@@ -734,6 +872,29 @@ st.markdown("""
     [data-testid="stMetricValue"] div {
         font-size: 24px !important;
         white-space: normal !important;
+        color: #0f172a !important;
+    }
+    [data-testid="stMetricValue"] div p {
+        color: #0f172a !important;
+    }
+    [data-testid="stMetricValue"] p {
+        color: #0f172a !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+    }
+    [data-testid="stMetricValue"] span {
+        color: #0f172a !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        color: #1a1a1a !important;
+    }
+    [data-testid="stMetricDelta"] div {
+        color: #1a1a1a !important;
+    }
+    [data-testid="stMetricDelta"] p {
+        color: #1a1a1a !important;
     }
     .real-world-example {
         background-color: #e8f5e9;
@@ -742,7 +903,10 @@ st.markdown("""
         border-radius: 8px;
         margin: 0.5rem 0;
         font-size: 0.9rem;
-        color: #1a1a1a;
+        color: #1a1a1a !important;
+    }
+    .real-world-example p, .real-world-example div, .real-world-example span {
+        color: #1a1a1a !important;
     }
     .step-indicator {
         background-color: #1f77b4;
@@ -1164,24 +1328,29 @@ st.markdown("""
         transition: color 0.25s ease;
     }
 
-    /* Hover */
+    /* Hover - remove background highlight */
     .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:hover {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-color: rgba(255, 255, 255, 0.16) !important;
-        box-shadow: 0 6px 14px rgba(2, 6, 23, 0.26);
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
     }
 
     .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:hover [data-testid="stMarkdownContainer"] p {
         color: #e4574f !important;
     }
 
-    /* Active */
+    /* Remove blue background from markdown container in tabs */
+    .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"] [data-testid="stMarkdownContainer"] {
+        background: transparent !important;
+    }
+
+    /* Active - removed blue/red highlight */
     .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"],
     .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"]:has(input[type="radio"]:checked) {
-        background: rgba(228, 87, 79, 0.16) !important;
-        border-color: rgba(228, 87, 79, 0.38) !important;
-        border-bottom-color: #e4574f !important;
-        box-shadow: 0 7px 16px rgba(228, 87, 79, 0.18);
+        background: transparent !important;
+        border-color: transparent !important;
+        border-bottom-color: transparent !important;
+        box-shadow: none !important;
     }
 
     .st-key-top_nav_page [data-testid="stRadio"] [data-baseweb="radio"][aria-checked="true"] [data-testid="stMarkdownContainer"] p,

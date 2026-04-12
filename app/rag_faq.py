@@ -17,6 +17,60 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
+def _strip_think_tags(response: str) -> str:
+    """Remove <think>...</think> tags from LLM responses for cleaner output."""
+    if not isinstance(response, str):
+        return response
+    
+    import re
+    # Remove all <think>...</think> tags (including multiline)
+    cleaned = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL)
+    # Remove extra whitespace
+    cleaned = cleaned.strip()
+    return cleaned
+
+
+def _clean_markdown(response: str) -> str:
+    """Convert markdown formatting to clean plain text for better readability."""
+    if not isinstance(response, str):
+        return response
+    
+    import re
+    
+    # Remove markdown formatting but keep content readable
+    text = response
+    
+    # Convert bold **text** or __text__ to plain text
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+    text = re.sub(r'__(.*?)__', r'\1', text)
+    
+    # Convert italic *text* or _text_ to plain text
+    text = re.sub(r'\*(.*?)\*', r'\1', text)
+    text = re.sub(r'_(.*?)_', r'\1', text)
+    
+    # Convert headers # to plain text
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    
+    # Convert lists to clean format
+    text = re.sub(r'^\s*[-*+]\s+', '• ', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*\d+\.\s+', lambda m: f"{m.group().strip()}. ", text, flags=re.MULTILINE)
+    
+    # Convert inline code `code` to plain text
+    text = re.sub(r'`(.*?)`', r'\1', text)
+    
+    # Remove code block markers
+    text = re.sub(r'```.*?\n', '', text, flags=re.MULTILINE)
+    text = re.sub(r'```', '', text)
+    
+    # Remove link markdown [text](url) to just text
+    text = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', text)
+    
+    # Clean up multiple newlines
+    text = re.sub(r'\n\n+', '\n\n', text)
+    
+    return text.strip()
+
+
 @dataclass
 class RetrievalHit:
     text: str
@@ -694,6 +748,8 @@ def get_final_answer(
         debug = rag_result.get("debug", {}) if isinstance(rag_result, dict) else {}
 
         if isinstance(answer, str) and answer.strip():
+            answer = _strip_think_tags(answer)  # Remove <think> tags
+            answer = _clean_markdown(answer)  # Clean markdown formatting
             debug["fallback_used"] = False
             debug["retrieval_used"] = True
             print(f"[chat-debug] mode=rag model={debug.get('model_used')} status={debug.get('api_http_status')} fallback=False")
@@ -729,6 +785,8 @@ def get_final_answer(
 
         debug["fallback_used"] = True
         debug["retrieval_used"] = True
+        general_answer = _strip_think_tags(general_answer)  # Remove <think> tags
+        general_answer = _clean_markdown(general_answer)  # Clean markdown formatting
         print(f"[chat-debug] mode=rag-fallback-general model={debug.get('model_used')} status={debug.get('api_http_status')} fallback=True")
         return {
             "answer": general_answer,
@@ -750,6 +808,8 @@ def get_final_answer(
         "retrieval_used": False,
         "retrieved_count": 0,
     }
+    general_answer = _strip_think_tags(general_answer)  # Remove <think> tags
+    general_answer = _clean_markdown(general_answer)  # Clean markdown formatting
     print("[chat-debug] mode=general-no-retrieval fallback=True")
     return {
         "answer": general_answer,
