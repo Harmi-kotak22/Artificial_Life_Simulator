@@ -5,10 +5,9 @@ FROM python:3.11-slim
 WORKDIR /project
 
 # System dependencies for scientific packages and building
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file first to leverage Docker cache
