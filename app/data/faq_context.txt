@@ -1,9 +1,9 @@
 UPDFF FAQ KNOWLEDGE CORPUS
 Version: 1.0
-Scope: Disease Outbreak Forecaster app
+Scope: Disease Forecast And Simulation app
 
 SECTION: PROJECT OVERVIEW
-The Disease Outbreak Forecaster is an uncertainty-aware forecasting dashboard built with Streamlit.
+The Disease Forecast And Simulation is an uncertainty-aware forecasting dashboard built with Streamlit.
 It supports outbreak forecasting, forecast validation, intervention comparison, agent-based simulation, and FAQ assistance.
 The forecasting workflow is probabilistic and uses multiple simulations to represent uncertainty.
 

@@ -33,7 +33,7 @@ from rag_faq import (
 
 # Page configuration - MUST BE FIRST STREAMLIT COMMAND
 st.set_page_config(
-    page_title="Disease Outbreak Forecaster",
+    page_title="Disease Forecast And Simulation",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -158,6 +158,22 @@ dark_theme_css = """
         white-space: normal !important;
     }
     
+    /* Remove blue highlights from Plotly toolbar buttons */
+    .modebar-btn {
+        background-color: transparent !important;
+        border: none !important;
+        color: #E5E7EB !important;
+    }
+    
+    .modebar-btn:hover {
+        background-color: transparent !important;
+        border: none !important;
+    }
+    
+    .modebar {
+        background-color: transparent !important;
+        border: none !important;
+    }
     [data-baseweb="select"] [data-baseweb="tag"] * {
         color: #E5E7EB !important;
         overflow: visible !important;
@@ -1963,8 +1979,8 @@ chatbot_html = f"""
 
 components.html(chatbot_html, height=0)
 
-# 2. Render the "Outbreak Forecaster" Heading BELOW the navbar as requested
-st.markdown('<div class="nav-logo-title">🏥 Outbreak Forecaster</div>', unsafe_allow_html=True)
+# 2. Render the "Disease Forecast And Simulation" Heading BELOW the navbar as requested
+st.markdown('<div class="nav-logo-title">🏥 Disease Forecast And Simulation</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -1976,7 +1992,7 @@ if page == "🏠 Home":
     st.markdown("""
     <div class="landing-hero">
         <h1 class="hero-title">Predict Disease Outbreaks with Confidence</h1>
-        <p class="hero-subtitle">AI-powered epidemiological forecasting and simulation platform</p>
+        <p class="hero-subtitle">Epidemiological forecasting and simulation platform</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -2032,7 +2048,7 @@ elif page == "📖 Learn How This Works":
     st.markdown("""
     <div class="explain-box">
     <strong>🎯 What is this tool?</strong><br><br>
-    This is a <strong>disease outbreak forecaster</strong> - similar to weather forecasting, but for epidemics. 
+    This is a <strong>disease forecast and simulation tool</strong> - similar to weather forecasting, but for epidemics. 
     Just like meteorologists predict tomorrow's weather using scientific models, epidemiologists (disease scientists) 
     use mathematical models to predict how diseases will spread.<br><br>
     <strong>Why is this useful?</strong> Forecasts help hospitals prepare beds, help governments decide on policies, 
@@ -2122,15 +2138,15 @@ elif page == "📖 Learn How This Works":
     fig = go.Figure()
     
     # Add phases
-    fig.add_vrect(x0=0, x1=20, fillcolor="green", opacity=0.1, line_width=0,
+    fig.add_vrect(x0=0, x1=20, fillcolor="white", opacity=0.05, line_width=0,
                   annotation_text="Early Growth", annotation_position="top")
-    fig.add_vrect(x0=20, x1=35, fillcolor="yellow", opacity=0.1, line_width=0,
+    fig.add_vrect(x0=20, x1=35, fillcolor="white", opacity=0.05, line_width=0,
                   annotation_text="Rapid Spread", annotation_position="top")
-    fig.add_vrect(x0=35, x1=55, fillcolor="red", opacity=0.1, line_width=0,
+    fig.add_vrect(x0=35, x1=55, fillcolor="white", opacity=0.05, line_width=0,
                   annotation_text="Peak", annotation_position="top")
-    fig.add_vrect(x0=55, x1=90, fillcolor="blue", opacity=0.1, line_width=0,
+    fig.add_vrect(x0=55, x1=90, fillcolor="white", opacity=0.05, line_width=0,
                   annotation_text="Decline", annotation_position="top")
-    fig.add_vrect(x0=90, x1=120, fillcolor="gray", opacity=0.1, line_width=0,
+    fig.add_vrect(x0=90, x1=120, fillcolor="white", opacity=0.05, line_width=0,
                   annotation_text="End", annotation_position="top")
     
     fig.add_trace(go.Scatter(x=days, y=cases, mode='lines', 
