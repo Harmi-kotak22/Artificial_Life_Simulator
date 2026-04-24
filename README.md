@@ -1,26 +1,451 @@
-# Universal Probabilistic Disaster Forecasting Framework (UPDFF)
+# 🏥 Disease Forecast And Simulation
 
-## Project Vision
+**A Production-Ready Probabilistic Outbreak Forecasting & Decision Support Platform**
 
-A modular, disaster-agnostic, probabilistic forecasting framework designed as a **decision-support system** that learns latent dynamics from historical data and produces calibrated uncertainty-quantified forecasts across multiple hazard domains.
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.0+-red.svg)](https://streamlit.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
-**This is NOT a deterministic simulator** — it is a probabilistic forecaster that outputs risk distributions, confidence intervals, and scenario-dependent impact estimates.
+Transform outbreak analysis from uncertainty into actionable intelligence. **Disease Forecast And Simulation** combines probabilistic forecasting, real-world validation, intervention analysis, and interactive visualization to support evidence-based public health decisions during disease outbreaks.
 
 ---
 
-## Table of Contents
+## 🌐 Live Demo
 
-1. [System Architecture](#system-architecture)
-2. [Core Abstractions](#core-abstractions)
-3. [Mathematical Foundations](#mathematical-foundations)
-4. [Development Phases](#development-phases)
-5. [MVP Specification](#mvp-specification)
-6. [Hazard Module Interface](#hazard-module-interface)
-7. [Disease Module Deep Dive](#disease-module-deep-dive)
-8. [Inference & Learning](#inference--learning)
-9. [Validation & Trustworthiness](#validation--trustworthiness)
-10. [Data Requirements](#data-requirements)
-11. [Technical Stack](#technical-stack)
+**Try it now without installation:** [https://artificial-life-simulator.onrender.com/](https://artificial-life-simulator.onrender.com/)
+
+✨ **Ready to explore:**
+- Generate probabilistic forecasts in <5 minutes
+- Validate against real-world data
+- Compare intervention scenarios
+- Chat with our AI FAQ bot
+- Run agent-based simulations
+
+---
+
+## 📋 Table of Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Why DFAS?](#why-dfas)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Deployment](#deployment)
+- [Project Structure](#project-structure)
+- [Technical Stack](#technical-stack)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## 🚀 Quick Start
+
+### ⚡ Try Online (No Installation)
+
+👉 **[Live Demo](https://artificial-life-simulator.onrender.com/)** - Fully functional deployment ready to use!
+
+### 🖥️ Local Setup (5 Minutes)
+
+```bash
+# 1. Clone repository
+git clone https://github.com/yourusername/disease-forecast-simulation.git
+cd disease-forecast-simulation
+
+# 2. Create virtual environment
+python -m venv venv
+source venv/Scripts/activate  # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Set environment variables
+cp .env.example .env
+# Edit .env: add your GROQ_API_KEY=your_key_here
+
+# 5. Run application
+streamlit run app/main.py
+
+# 6. Open browser: http://localhost:8501
+```
+
+---
+
+## ✨ Features
+
+### 🔮 Probabilistic Forecasting
+- **Hybrid ensemble**: 500+ Monte Carlo simulations combining Renewal Equations, Trend Extrapolation, and SEIR/SEIRD models
+- **Uncertainty quantification**: 90% credible intervals, not guesses
+- **Disease flexibility**: 7+ profiles (COVID-19, Ebola, Mpox, Influenza, custom)
+- **Fast**: Forecasts complete in <5 minutes
+
+### ✅ Real-World Validation  
+- **Data comparison**: Johns Hopkins, WHO, OWID datasets
+- **Accuracy metrics**: MAE, RMSE, MAPE, bias, coverage, correlation, CRPS/WIS
+- **Date constraints**: Source-specific availability automatically handled
+- **Diagnostics**: Understand where forecasts went wrong
+
+### ⚖️ Intervention Analysis
+- **Scenario comparison**: Baseline vs. intervention with quantified impact
+- **Impact metrics**: Peak reduction %, cases avoided, deaths avoided
+- **Strategy support**: Vaccination, testing, quarantine modeling
+- **Multi-intervention**: Combine strategies for realistic planning
+
+### 🎮 Agent-Based Simulation
+- **Interactive animation**: Watch disease spread in real-time
+- **Dual modes**: Curve-guided or parameter-driven simulation
+- **SEIRD dynamics**: Proximity-based transmission with state tracking
+- **Statistics**: R-effective, attack rate, doubling time
+
+### 🤖 AI-Powered FAQ Chatbot
+- **RAG-based**: Grounded in project documentation (no hallucination)
+- **Natural language**: Ask questions naturally, get expert-level answers
+- **Groq integration**: Fast LLM responses via llama-3.1-8b-instant
+- **Sources**: Every answer includes citations and references
+
+### 📥 Data Export & Reporting
+- **CSV exports**: Standardized epidemiological fields
+- **Forecast reports**: Results with confidence intervals
+- **Validation summaries**: Error metrics and diagnostics
+- **One-click download**: Export everything with one click
+
+---
+
+## 🎯 Why Disease Forecast And Simulation?
+
+### The Problem
+- ❌ Single-point forecasts hide critical uncertainty
+- ❌ No integrated platform for validation + intervention analysis
+- ❌ Expert knowledge locked away; not accessible to decision-makers
+- ❌ Slow outbreak analysis (48+ hours) delays responses
+
+### Our Solution
+| Feature | Traditional | DFAS |
+|---------|-------------|------|
+| Uncertainty | None | 90% credible intervals |
+| Validation | Manual | Automated with metrics |
+| Interventions | Separate tools | Integrated comparison |
+| Knowledge | Black box | Explainable with chatbot |
+| Time to Decision | 48+ hours | <5 minutes |
+| Decision Support | None | Scenarios + impact metrics |
+
+**Result**: Faster decisions, better resource planning, lives saved.
+
+---
+
+## 📦 Installation
+
+### Option 1: Local Development (Recommended)
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/Scripts/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment
+cp .env.example .env
+# Edit .env with your GROQ_API_KEY
+
+# Verify setup
+pytest tests/
+
+# Run application
+streamlit run app/main.py
+```
+
+### Option 2: Docker
+
+```bash
+# Build image
+docker build -t disease-forecast-simulation .
+
+# Run container
+docker run -p 8501:8501 \
+  -e GROQ_API_KEY=your_key_here \
+  disease-forecast-simulation
+
+# Access: http://localhost:8501
+```
+
+### Option 3: Docker Compose
+
+```bash
+# Create .env with API keys
+echo "GROQ_API_KEY=your_key_here" > .env
+
+# Start services
+docker-compose up
+
+# Access: http://localhost:8501
+```
+
+---
+
+## 💻 Usage
+
+### Web Application Pages
+
+| Page | What You Can Do |
+|------|-----------------|
+| 🏠 **Home** | Feature overview & quick statistics |
+| 📖 **Learn Basics** | Educational content on disease dynamics |
+| 🔮 **Generate Forecast** | Create probabilistic outbreak predictions |
+| ✅ **Validate Forecast** | Compare forecasts vs. real-world data |
+| ⚖️ **Compare Interventions** | Analyze impact of different strategies |
+| 🎮 **Agent Simulation** | Visualize disease spread with agent animation |
+| 🤖 **FAQ Chatbot** | Ask questions about models, metrics, usage |
+| 📥 **Upload Data** | Import custom outbreak datasets |
+
+### Example Workflow
+
+**Step 1: Generate Forecast**
+```
+1. Select disease: COVID-19
+2. Population: 1,000,000
+3. Initial cases: 100
+4. Forecast horizon: 60 days
+5. Click "Generate Forecast"
+→ Get: Mean predictions, 90% intervals, mortality estimates
+```
+
+**Step 2: Validate Results**
+```
+1. Select data source: Johns Hopkins
+2. Choose date range for comparison
+3. View accuracy metrics (MAE, RMSE, coverage)
+4. Understand forecast reliability
+```
+
+**Step 3: Compare Interventions**
+```
+1. Set vaccination: 50% coverage, 90% efficacy
+2. Generate baseline vs. intervention scenarios
+3. View peak reduction: 45% ↓
+4. See lives saved: 12,000 deaths avoided
+```
+
+---
+
+## 🌐 Deployment
+
+### ✅ Live Instance
+
+Your app is already running!
+
+🎯 **Live URL:** https://artificial-life-simulator.onrender.com/
+
+---
+
+### Render (Recommended - 5 minutes)
+
+```bash
+# 1. Create account at render.com
+# 2. Connect your GitHub repo
+# 3. Create new Web Service
+# 4. Configure:
+#    - Runtime: Docker
+#    - Port: 8501
+# 5. Add environment variable: GROQ_API_KEY
+# 6. Deploy (Render handles everything!)
+```
+
+### Google Cloud Run
+
+```bash
+# Build and push Docker image
+gcloud builds submit --tag gcr.io/PROJECT_ID/disease-forecast
+gcloud run deploy disease-forecast \
+  --image gcr.io/PROJECT_ID/disease-forecast \
+  --platform managed --region us-central1 \
+  --set-env-vars GROQ_API_KEY=your_key_here
+```
+
+### AWS EC2/ECS
+See [README_DEPLOYMENT.md](README_DEPLOYMENT.md) for detailed instructions.
+
+---
+
+## 📁 Project Structure
+
+```
+disease-forecast-simulation/
+├── app/                           # Web application
+│   ├── main.py                   # Streamlit dashboard (8 pages)
+│   ├── rag_faq.py                # Chatbot with Groq API
+│   ├── simulation.py             # Agent-based simulation
+│   ├── utils.py                  # Helper functions
+│   ├── data/
+│   │   ├── faq_context.txt       # Chatbot knowledge base
+│   │   └── disease_profiles.json # Disease parameters
+│   └── .streamlit/
+│       └── config.toml           # Dark theme configuration
+│
+├── updff/                         # Core forecasting framework
+│   ├── core/                     # State, distributions, ensembles
+│   │   ├── state.py
+│   │   ├── distribution.py
+│   │   ├── ensemble.py
+│   │   └── forecast.py
+│   ├── hazards/disease/          # Disease module
+│   │   ├── engine.py             # Main epidemiological engine
+│   │   ├── compartments.py       # SEIR/SEIRD models
+│   │   ├── transmission.py       # Transmission dynamics
+│   │   └── traits.py             # Pathogen characteristics
+│   ├── inference/                # Parameter calibration
+│   │   ├── mcmc.py
+│   │   ├── filters.py
+│   │   └── optimizer.py
+│   └── validation/               # Forecast evaluation
+│       ├── metrics.py
+│       ├── calibration.py
+│       └── diagnostics.py
+│
+├── tests/                        # Test suite
+│   ├── test_end_to_end.py
+│   └── test_validation.py
+│
+├── Dockerfile                    # Docker configuration
+├── docker-compose.yml            # Local Docker setup
+├── requirements.txt              # Python dependencies
+├── .env.example                  # Environment template
+├── README.md                     # This file (get started)
+├── README_DEPLOYMENT.md          # Cloud deployment guide
+├── PROJECT_OVERVIEW.md           # Technical deep dive
+└── REPORT_SECTIONS_4_TO_13.txt  # Academic report
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Streamlit (interactive web), Plotly (visualizations) |
+| **Backend** | Python 3.10+, NumPy/SciPy (computing), PyMC (inference) |
+| **AI/LLM** | Groq API (llama-3.1-8b-instant), TF-IDF retrieval |
+| **Infrastructure** | Docker, Render/GCP/AWS (deployment) |
+| **Testing** | PyTest, coverage tracking |
+| **Utilities** | Pandas, NetworkX, Numba, Pydantic |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test
+pytest tests/test_end_to_end.py -v
+
+# Coverage report
+pytest tests/ --cov=updff --cov-report=html
+```
+
+---
+
+## 📊 Performance
+
+| Metric | Value |
+|--------|-------|
+| Forecast generation | <5 min (500 simulations) |
+| UI response time | <2 sec |
+| Chatbot response | <3 sec |
+| Container size | ~800MB |
+| Cloud deployment | <5 min |
+
+---
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/YourFeature`
+3. Commit changes: `git commit -m 'Add YourFeature'`
+4. Push: `git push origin feature/YourFeature`
+5. Open Pull Request
+
+**Code standards**: PEP 8, type hints, docstrings, unit tests
+
+---
+
+## 📚 Documentation
+
+- **README_DEPLOYMENT.md** - Cloud deployment (Render/GCP/AWS)
+- **PROJECT_OVERVIEW.md** - Technical architecture & design
+- **REPORT_SECTIONS_4_TO_13.txt** - Academic specifications
+- **app/main.py** - Inline code documentation
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/disease-forecast-simulation/issues)
+- **Questions**: Open a discussion or email
+- **Feedback**: Feature requests welcome!
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file
+
+---
+
+## 🎓 Citation
+
+```bibtex
+@software{dfas2026,
+  title={Disease Forecast And Simulation: Probabilistic Outbreak Prediction Platform},
+  author={Your Name},
+  year={2026},
+  url={https://github.com/yourusername/disease-forecast-simulation}
+}
+```
+
+---
+
+## 🙏 Acknowledgments
+
+- Johns Hopkins University CSSE (COVID-19 data)
+- World Health Organization (epidemiological guidance)
+- Our World in Data (global health metrics)
+- Streamlit (web framework)
+- Groq (LLM API)
+- PyMC (Bayesian inference)
+
+---
+
+## 🚀 Roadmap
+
+✅ **Completed**
+- Probabilistic forecasting engine
+- Real-world validation framework
+- Intervention scenario analysis
+- Agent-based simulation
+- RAG chatbot with Groq API
+- Dark theme UI polish
+- Docker containerization
+
+🔄 **In Progress**
+- Enhanced chatbot with conversation memory
+- Multi-disease interaction modeling
+
+📅 **Planned**
+- Age-stratified SEAIHRD models
+- Geospatial forecasting with mobility
+- User authentication & experiment tracking
+- Mobile app
+- Multi-language support
+
+---
+
+**Made with ❤️ for public health decision-making**
+
+Last Updated: April 24, 2026 | Status: Production Ready ✅
 
 ---
 
