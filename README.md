@@ -118,7 +118,7 @@ streamlit run app/main.py
 - ❌ Single-point forecasts hide critical uncertainty
 - ❌ No integrated platform for validation + intervention analysis
 - ❌ Expert knowledge locked away; not accessible to decision-makers
-- ❌ Slow outbreak analysis (48+ hours) delays responses
+- ❌ Slow outbreak analysis (48+ hours) delays response
 
 ### Our Solution
 | Feature | Traditional | DFAS |
